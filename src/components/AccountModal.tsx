@@ -56,10 +56,7 @@ const tagOptions = [
   "Vehicle Architecture", "Connected Car", "Platform", "µC/HW"
 ];
 
-const industries = [
-  "Automotive", "Technology", "Healthcare", "Finance", "Manufacturing",
-  "Retail", "Education", "Real Estate", "Energy", "Aerospace", "Other"
-];
+const industries = ["Automotive", "Technology", "Manufacturing", "Other"];
 
 export const AccountModal = ({ open, onOpenChange, account, onSuccess }: AccountModalProps) => {
   const { toast } = useToast();
