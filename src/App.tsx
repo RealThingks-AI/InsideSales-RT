@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import SecurityEnhancedApp from "@/components/SecurityEnhancedApp";
 import { AppSidebar } from "@/components/AppSidebar";
 import Dashboard from "./pages/Dashboard";
+import Accounts from "./pages/Accounts";
 import Contacts from "./pages/Contacts";
 import Leads from "./pages/Leads";
 import DealsPage from "./pages/DealsPage";
@@ -105,6 +106,11 @@ const AppRouter = () => (
       <Route path="/" element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/accounts" element={
+        <ProtectedRoute>
+          <Accounts />
         </ProtectedRoute>
       } />
       <Route path="/contacts" element={
