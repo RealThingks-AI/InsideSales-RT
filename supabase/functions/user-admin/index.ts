@@ -207,10 +207,10 @@ serve(async (req) => {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
             }
           );
-        } catch (error) {
+        } catch (error: unknown) {
           console.error('Error in change-role:', error);
           return new Response(
-            JSON.stringify({ error: `Role update failed: ${error.message}` }),
+            JSON.stringify({ error: `Role update failed: ${error instanceof Error ? error.message : 'Unknown error'}` }),
             { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
