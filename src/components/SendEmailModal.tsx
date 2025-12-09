@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,15 +30,16 @@ interface SendEmailModalProps {
   contact: Contact | null;
 }
 
-const SENDER_EMAIL = "noreply@acmecrm.com";
-
 export const SendEmailModal = ({ open, onOpenChange, contact }: SendEmailModalProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [isSending, setIsSending] = useState(false);
+  
+  const senderEmail = user?.email || "noreply@acmecrm.com";
 
   useEffect(() => {
     if (open) {
@@ -116,6 +118,7 @@ export const SendEmailModal = ({ open, onOpenChange, contact }: SendEmailModalPr
           toName: contact.contact_name,
           subject: subject.trim(),
           body: body.trim(),
+          from: senderEmail,
         },
       });
 
@@ -159,7 +162,7 @@ export const SendEmailModal = ({ open, onOpenChange, contact }: SendEmailModalPr
           <div className="grid grid-cols-2 gap-4">
             <div className="p-3 bg-muted/50 rounded-lg">
               <Label className="text-sm text-muted-foreground">From:</Label>
-              <p className="font-medium text-sm">{SENDER_EMAIL}</p>
+              <p className="font-medium text-sm truncate">{senderEmail}</p>
             </div>
             <div className="p-3 bg-muted/50 rounded-lg">
               <Label className="text-sm text-muted-foreground">To:</Label>

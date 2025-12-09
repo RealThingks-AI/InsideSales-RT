@@ -5,13 +5,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SENDER_EMAIL = "noreply@acmecrm.com";
-
 interface EmailRequest {
   to: string;
   subject: string;
   body: string;
   toName?: string;
+  from: string;
 }
 
 async function getAccessToken(): Promise<string> {
@@ -49,11 +48,11 @@ async function getAccessToken(): Promise<string> {
 
   const data = await response.json();
   console.log("Successfully obtained access token");
-  return data.access_token;
+  return data.access_token as string;
 }
 
 async function sendEmail(accessToken: string, emailRequest: EmailRequest): Promise<void> {
-  const graphUrl = `https://graph.microsoft.com/v1.0/users/${SENDER_EMAIL}/sendMail`;
+  const graphUrl = `https://graph.microsoft.com/v1.0/users/${emailRequest.from}/sendMail`;
 
   const emailPayload = {
     message: {
@@ -101,11 +100,11 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, body, toName }: EmailRequest = await req.json();
+    const { to, subject, body, toName, from }: EmailRequest = await req.json();
 
-    if (!to || !subject) {
+    if (!to || !subject || !from) {
       return new Response(
-        JSON.stringify({ error: "Missing required fields: to, subject" }),
+        JSON.stringify({ error: "Missing required fields: to, subject, from" }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -113,13 +112,13 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Processing email request to: ${to}`);
+    console.log(`Processing email request from ${from} to: ${to}`);
 
     // Get access token from Azure AD
     const accessToken = await getAccessToken();
 
     // Send email via Microsoft Graph API
-    await sendEmail(accessToken, { to, subject, body, toName });
+    await sendEmail(accessToken, { to, subject, body, toName, from });
 
     return new Response(
       JSON.stringify({ success: true, message: "Email sent successfully" }),
