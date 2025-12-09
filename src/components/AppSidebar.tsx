@@ -33,11 +33,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import { Video } from "lucide-react";
+
 const allMenuItems = [
   { title: "Dashboard", url: "/", route: "/dashboard", icon: Home },
   { title: "Accounts", url: "/accounts", route: "/accounts", icon: Building2 },
   { title: "Contacts", url: "/contacts", route: "/contacts", icon: Users },
   { title: "Leads", url: "/leads", route: "/leads", icon: UserPlus },
+  { title: "Meetings", url: "/meetings", route: "/meetings", icon: Video },
   { title: "Deals", url: "/deals", route: "/deals", icon: BarChart3 },
   { title: "Settings", url: "/settings", route: "/settings", icon: Settings },
 ];
