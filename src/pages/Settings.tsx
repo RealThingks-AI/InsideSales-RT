@@ -62,11 +62,6 @@ const menuSections: MenuSection[] = [{
     icon: Users,
     adminOnly: true
   }, {
-    id: "role-management",
-    label: "Role Management",
-    icon: UserCog,
-    adminOnly: true
-  }, {
     id: "page-access",
     label: "Page Access Control",
     icon: Activity,
