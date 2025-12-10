@@ -103,7 +103,12 @@ const PipelineSettings = () => {
         const { error } = await supabase
           .from('pipeline_stages')
           .insert({
-            ...editingStage,
+            stage_name: editingStage.stage_name,
+            stage_color: editingStage.stage_color || '#3b82f6',
+            stage_probability: editingStage.stage_probability || 0,
+            is_active: editingStage.is_active ?? true,
+            is_won_stage: editingStage.is_won_stage || false,
+            is_lost_stage: editingStage.is_lost_stage || false,
             stage_order: stages.length,
           });
         if (error) throw error;
@@ -136,7 +141,10 @@ const PipelineSettings = () => {
         const { error } = await supabase
           .from('lead_statuses')
           .insert({
-            ...editingStatus,
+            status_name: editingStatus.status_name,
+            status_color: editingStatus.status_color || '#6b7280',
+            is_active: editingStatus.is_active ?? true,
+            is_converted_status: editingStatus.is_converted_status || false,
             status_order: statuses.length,
           });
         if (error) throw error;
