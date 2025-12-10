@@ -82,75 +82,78 @@ const Tasks = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
-          <p className="text-muted-foreground">
-            Manage your tasks and to-dos
-          </p>
-        </div>
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 bg-background">
+        <div className="px-6 h-16 flex items-center border-b w-full">
+          <div className="flex items-center justify-between w-full">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+                <TabsList>
+                  <TabsTrigger value="list" className="flex items-center gap-1">
+                    <List className="h-4 w-4" />
+                    <span className="hidden sm:inline">List</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="kanban" className="flex items-center gap-1">
+                    <LayoutGrid className="h-4 w-4" />
+                    <span className="hidden sm:inline">Kanban</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="calendar" className="flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    <span className="hidden sm:inline">Calendar</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="analytics" className="flex items-center gap-1">
+                    <BarChart3 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Analytics</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
 
-        <div className="flex items-center gap-3">
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-            <TabsList>
-              <TabsTrigger value="list" className="flex items-center gap-1">
-                <List className="h-4 w-4" />
-                <span className="hidden sm:inline">List</span>
-              </TabsTrigger>
-              <TabsTrigger value="kanban" className="flex items-center gap-1">
-                <LayoutGrid className="h-4 w-4" />
-                <span className="hidden sm:inline">Kanban</span>
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span className="hidden sm:inline">Calendar</span>
-              </TabsTrigger>
-              <TabsTrigger value="analytics" className="flex items-center gap-1">
-                <BarChart3 className="h-4 w-4" />
-                <span className="hidden sm:inline">Analytics</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <Button onClick={() => setShowModal(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Task
-          </Button>
+              <Button onClick={() => setShowModal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Task
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Content based on view mode */}
-      {viewMode === 'list' && (
-        <TaskListView
-          tasks={tasks}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onStatusChange={handleStatusChange}
-          onToggleComplete={handleToggleComplete}
-        />
-      )}
+      {/* Main Content */}
+      <div className="flex-1 min-h-0 overflow-auto p-6">
+        {/* Content based on view mode */}
+        {viewMode === 'list' && (
+          <TaskListView
+            tasks={tasks}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+            onToggleComplete={handleToggleComplete}
+          />
+        )}
 
-      {viewMode === 'kanban' && (
-        <TaskKanbanView
-          tasks={tasks}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onStatusChange={handleStatusChange}
-        />
-      )}
+        {viewMode === 'kanban' && (
+          <TaskKanbanView
+            tasks={tasks}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+          />
+        )}
 
-      {viewMode === 'calendar' && (
-        <TaskCalendarView
-          tasks={tasks}
-          onEdit={handleEdit}
-        />
-      )}
+        {viewMode === 'calendar' && (
+          <TaskCalendarView
+            tasks={tasks}
+            onEdit={handleEdit}
+          />
+        )}
 
-      {viewMode === 'analytics' && (
-        <TaskAnalyticsDashboard tasks={tasks} />
-      )}
+        {viewMode === 'analytics' && (
+          <TaskAnalyticsDashboard tasks={tasks} />
+        )}
+      </div>
 
       {/* Task Modal */}
       <TaskModal

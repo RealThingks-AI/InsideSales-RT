@@ -164,11 +164,15 @@ const Settings = () => {
     }
     return "Settings";
   };
-  return <div className="h-full flex flex-col bg-background overflow-hidden">
-      {/* Header */}
-      <div className="flex-shrink-0 border-b bg-card/50">
-        <div className="px-6 py-4">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Settings</h1>
+  return <div className="h-screen flex flex-col bg-background overflow-hidden">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 bg-background">
+        <div className="px-6 h-16 flex items-center border-b w-full">
+          <div className="flex items-center justify-between w-full">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+            </div>
+          </div>
         </div>
       </div>
 
