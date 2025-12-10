@@ -10,19 +10,34 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User, Mail, Phone, Globe, Loader2 } from 'lucide-react';
-
-const timezones = [
-  { value: 'Asia/Kolkata', label: 'IST (India Standard Time)' },
-  { value: 'America/New_York', label: 'EST (Eastern Standard Time)' },
-  { value: 'America/Los_Angeles', label: 'PST (Pacific Standard Time)' },
-  { value: 'Europe/London', label: 'GMT (Greenwich Mean Time)' },
-  { value: 'Europe/Paris', label: 'CET (Central European Time)' },
-  { value: 'Asia/Tokyo', label: 'JST (Japan Standard Time)' },
-  { value: 'Asia/Singapore', label: 'SGT (Singapore Time)' },
-  { value: 'Australia/Sydney', label: 'AEST (Australian Eastern Time)' },
-  { value: 'Asia/Dubai', label: 'GST (Gulf Standard Time)' },
-];
-
+const timezones = [{
+  value: 'Asia/Kolkata',
+  label: 'IST (India Standard Time)'
+}, {
+  value: 'America/New_York',
+  label: 'EST (Eastern Standard Time)'
+}, {
+  value: 'America/Los_Angeles',
+  label: 'PST (Pacific Standard Time)'
+}, {
+  value: 'Europe/London',
+  label: 'GMT (Greenwich Mean Time)'
+}, {
+  value: 'Europe/Paris',
+  label: 'CET (Central European Time)'
+}, {
+  value: 'Asia/Tokyo',
+  label: 'JST (Japan Standard Time)'
+}, {
+  value: 'Asia/Singapore',
+  label: 'SGT (Singapore Time)'
+}, {
+  value: 'Australia/Sydney',
+  label: 'AEST (Australian Eastern Time)'
+}, {
+  value: 'Asia/Dubai',
+  label: 'GST (Gulf Standard Time)'
+}];
 interface ProfileData {
   full_name: string;
   email: string;
@@ -31,9 +46,10 @@ interface ProfileData {
   bio: string;
   avatar_url: string;
 }
-
 const ProfileSettings = () => {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<ProfileData>({
@@ -42,32 +58,26 @@ const ProfileSettings = () => {
     phone: '',
     timezone: 'Asia/Kolkata',
     bio: '',
-    avatar_url: '',
+    avatar_url: ''
   });
-
   useEffect(() => {
     fetchProfile();
   }, [user]);
-
   const fetchProfile = async () => {
     if (!user) return;
-    
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-
+      const {
+        data,
+        error
+      } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (error && error.code !== 'PGRST116') throw error;
-
       setProfile({
         full_name: data?.full_name || user.user_metadata?.full_name || '',
         email: data?.['Email ID'] || user.email || '',
         phone: data?.phone || '',
         timezone: data?.timezone || 'Asia/Kolkata',
         bio: data?.bio || '',
-        avatar_url: data?.avatar_url || '',
+        avatar_url: data?.avatar_url || ''
       });
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -75,25 +85,22 @@ const ProfileSettings = () => {
       setLoading(false);
     }
   };
-
   const handleSave = async () => {
     if (!user) return;
     setSaving(true);
-
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          full_name: profile.full_name,
-          'Email ID': profile.email,
-          phone: profile.phone,
-          timezone: profile.timezone,
-          bio: profile.bio,
-          avatar_url: profile.avatar_url,
-          updated_at: new Date().toISOString(),
-        });
-
+      const {
+        error
+      } = await supabase.from('profiles').upsert({
+        id: user.id,
+        full_name: profile.full_name,
+        'Email ID': profile.email,
+        phone: profile.phone,
+        timezone: profile.timezone,
+        bio: profile.bio,
+        avatar_url: profile.avatar_url,
+        updated_at: new Date().toISOString()
+      });
       if (error) throw error;
       toast.success('Profile updated successfully');
     } catch (error) {
@@ -103,35 +110,22 @@ const ProfileSettings = () => {
       setSaving(false);
     }
   };
-
   const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
+    return <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
             Profile Information
           </CardTitle>
-          <CardDescription>
-            Manage your personal information and preferences
-          </CardDescription>
+          
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Avatar Section */}
@@ -146,39 +140,27 @@ const ProfileSettings = () => {
               <p className="text-sm text-muted-foreground">
                 Profile picture
               </p>
-              <Input
-                type="text"
-                placeholder="Avatar URL"
-                value={profile.avatar_url}
-                onChange={(e) => setProfile(p => ({ ...p, avatar_url: e.target.value }))}
-                className="mt-1 w-64"
-              />
+              
             </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="full_name">Full Name</Label>
-              <Input
-                id="full_name"
-                value={profile.full_name}
-                onChange={(e) => setProfile(p => ({ ...p, full_name: e.target.value }))}
-                placeholder="Enter your full name"
-              />
+              <Input id="full_name" value={profile.full_name} onChange={e => setProfile(p => ({
+              ...p,
+              full_name: e.target.value
+            }))} placeholder="Enter your full name" />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email}
-                  onChange={(e) => setProfile(p => ({ ...p, email: e.target.value }))}
-                  placeholder="Enter your email"
-                  className="pl-9"
-                />
+                <Input id="email" type="email" value={profile.email} onChange={e => setProfile(p => ({
+                ...p,
+                email: e.target.value
+              }))} placeholder="Enter your email" className="pl-9" />
               </div>
             </div>
 
@@ -186,13 +168,10 @@ const ProfileSettings = () => {
               <Label htmlFor="phone">Phone</Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="phone"
-                  value={profile.phone}
-                  onChange={(e) => setProfile(p => ({ ...p, phone: e.target.value }))}
-                  placeholder="Enter your phone number"
-                  className="pl-9"
-                />
+                <Input id="phone" value={profile.phone} onChange={e => setProfile(p => ({
+                ...p,
+                phone: e.target.value
+              }))} placeholder="Enter your phone number" className="pl-9" />
               </div>
             </div>
 
@@ -200,35 +179,24 @@ const ProfileSettings = () => {
               <Label htmlFor="timezone">Timezone</Label>
               <div className="relative">
                 <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground z-10" />
-                <Select
-                  value={profile.timezone}
-                  onValueChange={(value) => setProfile(p => ({ ...p, timezone: value }))}
-                >
+                <Select value={profile.timezone} onValueChange={value => setProfile(p => ({
+                ...p,
+                timezone: value
+              }))}>
                   <SelectTrigger className="pl-9">
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
                   <SelectContent>
-                    {timezones.map(tz => (
-                      <SelectItem key={tz.value} value={tz.value}>
+                    {timezones.map(tz => <SelectItem key={tz.value} value={tz.value}>
                         {tz.label}
-                      </SelectItem>
-                    ))}
+                      </SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="bio">Bio</Label>
-            <Textarea
-              id="bio"
-              value={profile.bio}
-              onChange={(e) => setProfile(p => ({ ...p, bio: e.target.value }))}
-              placeholder="Write a short bio about yourself..."
-              rows={3}
-            />
-          </div>
+          
 
           <div className="pt-4 border-t flex justify-end">
             <Button onClick={handleSave} disabled={saving}>
@@ -238,8 +206,6 @@ const ProfileSettings = () => {
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default ProfileSettings;
