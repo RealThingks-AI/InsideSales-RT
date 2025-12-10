@@ -177,7 +177,7 @@ const Settings = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex-shrink-0 border-b bg-background">
+      <div className="flex-shrink-0 bg-background">
         <div className="px-6 py-4">
           <div className="flex flex-wrap gap-2">
             {menuSections.map(section => {
