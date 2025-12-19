@@ -117,9 +117,9 @@ const Settings = () => {
   const handleSectionClick = (sectionId: string) => {
     setExpandedSection(expandedSection === sectionId ? null : sectionId);
   };
-  const handleItemClick = (itemId: string) => {
+  const handleItemClick = (itemId: string, sectionId: string) => {
     setActiveTab(itemId);
-    setExpandedSection(null);
+    setExpandedSection(sectionId);
   };
   const renderContent = () => {
     switch (activeTab) {
@@ -162,10 +162,10 @@ const Settings = () => {
   return <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Fixed Header */}
       <div className="flex-shrink-0 bg-background">
-        <div className="px-5 h-14 flex items-center border-b w-full">
+        <div className="px-6 h-16 flex items-center border-b w-full">
           <div className="flex items-center justify-between w-full">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-bold text-foreground">Settings</h1>
+              <h1 className="text-2xl font-bold text-foreground">Settings</h1>
             </div>
           </div>
         </div>
@@ -194,7 +194,7 @@ const Settings = () => {
                       {visibleItems.map(item => {
                   const Icon = item.icon;
                   const isActive = activeTab === item.id;
-                  return <button key={item.id} onClick={() => handleItemClick(item.id)} className={cn("w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors", isActive ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted/50")}>
+                  return <button key={item.id} onClick={() => handleItemClick(item.id, section.id)} className={cn("w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors", isActive ? "bg-primary/10 text-primary font-medium" : "text-foreground hover:bg-muted/50")}>
                             
                             <span>{item.label}</span>
                           </button>;
