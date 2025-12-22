@@ -7,9 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Search, Video, Trash2, Edit, Calendar, ArrowUpDown, ArrowUp, ArrowDown, List, CalendarDays, CheckCircle2, AlertCircle, UserX, CalendarClock, BarChart3 } from "lucide-react";
+import { Plus, Search, Video, Trash2, Edit, Calendar, ArrowUpDown, ArrowUp, ArrowDown, List, CalendarDays, CheckCircle2, AlertCircle, UserX, CalendarClock } from "lucide-react";
 import { MeetingsCalendarView } from "@/components/meetings/MeetingsCalendarView";
-import { MeetingAnalyticsDashboard } from "@/components/meetings/MeetingAnalyticsDashboard";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MeetingModal } from "@/components/MeetingModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -55,7 +54,7 @@ const Meetings = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortColumn, setSortColumn] = useState<SortColumn>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [viewMode, setViewMode] = useState<'table' | 'calendar' | 'analytics'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'calendar'>('table');
   const fetchMeetings = async () => {
     try {
       setLoading(true);
@@ -286,10 +285,6 @@ const Meetings = () => {
                   <CalendarDays className="h-3.5 w-3.5" />
                   Calendar
                 </Button>
-                <Button variant={viewMode === 'analytics' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('analytics')} className="gap-1.5 h-8 px-2.5 text-xs">
-                  <BarChart3 className="h-3.5 w-3.5" />
-                  Analytics
-                </Button>
               </div>
               
               <Button size="sm" onClick={() => {
@@ -305,7 +300,7 @@ const Meetings = () => {
 
       {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-auto p-6">
-        {viewMode === 'analytics' ? <MeetingAnalyticsDashboard /> : viewMode === 'calendar' ? <MeetingsCalendarView meetings={filteredMeetings} onMeetingClick={meeting => {
+        {viewMode === 'calendar' ? <MeetingsCalendarView meetings={filteredMeetings} onMeetingClick={meeting => {
         setEditingMeeting(meeting);
         setShowModal(true);
       }} onMeetingUpdated={fetchMeetings} /> : <div className="space-y-4">
