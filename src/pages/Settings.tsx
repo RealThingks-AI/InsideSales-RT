@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { User, Key, Bell, Palette, Users, UserCog, Activity, GitBranch, FileUp, Plug, FileText, Monitor, Shield, ChevronDown, Settings as SettingsIcon } from "lucide-react";
+import { User, Key, Bell, Palette, Users, Activity, GitBranch, FileUp, Plug, FileText, Monitor, Shield, ChevronDown, Settings as SettingsIcon } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import UserManagement from "@/components/UserManagement";
 import SecuritySettings from "@/components/settings/SecuritySettings";
