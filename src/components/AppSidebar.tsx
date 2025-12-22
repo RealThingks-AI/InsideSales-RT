@@ -37,7 +37,7 @@ import {
 import { Video } from "lucide-react";
 
 const allMenuItems = [
-  { title: "Dashboard", url: "/", route: "/dashboard", icon: Home },
+  { title: "Dashboard", url: "/dashboard", route: "/dashboard", icon: Home },
   { title: "Accounts", url: "/accounts", route: "/accounts", icon: Building2 },
   { title: "Contacts", url: "/contacts", route: "/contacts", icon: Users },
   { title: "Leads", url: "/leads", route: "/leads", icon: UserPlus },
@@ -123,8 +123,8 @@ export function AppSidebar({ isFixed = false, isOpen, onToggle }: AppSidebarProp
   const sidebarOpen = isFixed ? (isOpen ?? false) : isPinned;
 
   const isActive = (path: string) => {
-    if (path === "/") {
-      return currentPath === "/";
+    if (path === "/dashboard") {
+      return currentPath === "/" || currentPath === "/dashboard";
     }
     return currentPath.startsWith(path);
   };
@@ -139,7 +139,7 @@ export function AppSidebar({ isFixed = false, isOpen, onToggle }: AppSidebarProp
   };
 
   const handleLogoClick = () => {
-    navigate('/');
+    navigate('/dashboard');
   };
 
   const handleNotificationClick = () => {

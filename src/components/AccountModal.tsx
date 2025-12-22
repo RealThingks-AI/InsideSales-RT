@@ -12,11 +12,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X, ChevronDown } from "lucide-react";
 import { Account } from "./AccountTable";
 
 const accountSchema = z.object({
   company_name: z.string().min(1, "Company name is required"),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
   region: z.string().optional(),
   country: z.string().optional(),
   website: z.string().url("Invalid website URL").optional().or(z.literal("")),
@@ -69,6 +71,7 @@ export const AccountModal = ({ open, onOpenChange, account, onSuccess }: Account
     resolver: zodResolver(accountSchema),
     defaultValues: {
       company_name: "",
+      email: "",
       region: "",
       country: "",
       website: "",
@@ -94,6 +97,7 @@ export const AccountModal = ({ open, onOpenChange, account, onSuccess }: Account
     if (account) {
       form.reset({
         company_name: account.company_name || "",
+        email: account.email || "",
         region: account.region || "",
         country: account.country || "",
         website: account.website || "",
@@ -110,6 +114,7 @@ export const AccountModal = ({ open, onOpenChange, account, onSuccess }: Account
     } else {
       form.reset({
         company_name: "",
+        email: "",
         region: "",
         country: "",
         website: "",
@@ -145,6 +150,7 @@ export const AccountModal = ({ open, onOpenChange, account, onSuccess }: Account
 
       const accountData = {
         company_name: data.company_name,
+        email: data.email || null,
         region: data.region || null,
         country: data.country || null,
         website: data.website || null,
@@ -228,6 +234,20 @@ export const AccountModal = ({ open, onOpenChange, account, onSuccess }: Account
                     <FormLabel>Company Name *</FormLabel>
                     <FormControl>
                       <Input placeholder="Company Name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="contact@company.com" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -380,26 +400,49 @@ export const AccountModal = ({ open, onOpenChange, account, onSuccess }: Account
             {/* Tags Multi-select */}
             <div className="space-y-2">
               <FormLabel>Tags</FormLabel>
-              <div className="flex flex-wrap gap-2 p-3 border rounded-md bg-background min-h-[80px]">
-                {tagOptions.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant={selectedTags.includes(tag) ? "default" : "outline"}
-                    className="cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => toggleTag(tag)}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="w-full justify-between h-auto min-h-10 py-2"
                   >
-                    {tag}
-                    {selectedTags.includes(tag) && (
-                      <X className="w-3 h-3 ml-1" />
-                    )}
-                  </Badge>
-                ))}
-              </div>
-              {selectedTags.length > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Selected: {selectedTags.join(", ")}
-                </p>
-              )}
+                    <div className="flex items-center gap-1 flex-1 min-w-0">
+                      {selectedTags.length > 0 ? (
+                        <div className="flex gap-1 flex-wrap flex-1">
+                          {selectedTags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Select tags...</span>
+                      )}
+                    </div>
+                    <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[400px] p-0 bg-popover z-50" align="start">
+                  <div className="p-3 max-h-[300px] overflow-y-auto">
+                    <div className="flex flex-wrap gap-2">
+                      {tagOptions.map((tag) => (
+                        <Badge
+                          key={tag}
+                          variant={selectedTags.includes(tag) ? "default" : "outline"}
+                          className="cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => toggleTag(tag)}
+                        >
+                          {tag}
+                          {selectedTags.includes(tag) && (
+                            <X className="w-3 h-3 ml-1" />
+                          )}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
 
             <FormField

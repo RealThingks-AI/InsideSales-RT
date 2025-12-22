@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown, MoreHorizontal, UserPlus, Mail, Eye } from "lucide-react";
+import { ArrowUpDown, ArrowUp, ArrowDown, CalendarPlus } from "lucide-react";
+import { RowActionsDropdown, Edit, Trash2, Mail, Eye, UserPlus } from "../RowActionsDropdown";
 import { useUserDisplayNames } from "@/hooks/useUserDisplayNames";
 import { ContactColumnConfig } from "../ContactColumnCustomizer";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AccountViewModal } from "../AccountViewModal";
 import { SendEmailModal } from "../SendEmailModal";
+import { MeetingModal } from "../MeetingModal";
 
 interface Contact {
   id: string;
@@ -65,6 +67,8 @@ export const ContactTableBody = ({
   const [accountViewOpen, setAccountViewOpen] = useState(false);
   const [emailContact, setEmailContact] = useState<Contact | null>(null);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [meetingModalOpen, setMeetingModalOpen] = useState(false);
+  const [meetingContact, setMeetingContact] = useState<Contact | null>(null);
   
   // Get all unique user IDs that we need to fetch display names for
   const contactOwnerIds = [...new Set(pageContacts.map(c => c.contact_owner).filter(Boolean))];
@@ -161,7 +165,7 @@ export const ContactTableBody = ({
   };
 
   const getSortIcon = (field: string) => {
-    if (sortField !== field) return <ArrowUpDown className="w-4 h-4" />;
+    if (sortField !== field) return <ArrowUpDown className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />;
     return sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />;
   };
 
@@ -246,7 +250,7 @@ export const ContactTableBody = ({
                   className="h-auto p-0 font-bold hover:bg-transparent w-full justify-start text-foreground"
                   onClick={() => onSort(column.field)}
                 >
-                  <div className="flex items-center gap-2">
+                  <div className="group flex items-center gap-2">
                     {column.label}
                     {getSortIcon(column.field)}
                   </div>
@@ -298,57 +302,52 @@ export const ContactTableBody = ({
                   </div>
                 </TableCell>
               ))}
-              <TableCell className="w-40 py-3">
-                <div className="flex items-center justify-end gap-1 pr-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onView(contact)}
-                    className="h-8 w-8 p-0 hover:bg-muted"
-                    title="View contact details"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEdit(contact)}
-                    className="h-8 w-8 p-0 hover:bg-muted"
-                    title="Edit contact"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setEmailContact(contact);
-                      setEmailModalOpen(true);
-                    }}
-                    className="h-8 w-8 p-0 hover:bg-muted text-primary"
-                    title="Send email"
-                    disabled={!contact.email}
-                  >
-                    <Mail className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleConvertToLead(contact)}
-                    className="h-8 w-8 p-0 hover:bg-muted"
-                    title="Convert to lead"
-                  >
-                    <UserPlus className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onDelete(contact.id)}
-                    className="h-8 w-8 p-0 hover:bg-destructive/10 text-destructive hover:text-destructive"
-                    title="Delete contact"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+              <TableCell className="w-20 py-3">
+                <div className="flex items-center justify-end pr-2">
+                  <RowActionsDropdown
+                    actions={[
+                      {
+                        label: "View Details",
+                        icon: <Eye className="w-4 h-4" />,
+                        onClick: () => onView(contact)
+                      },
+                      {
+                        label: "Edit",
+                        icon: <Edit className="w-4 h-4" />,
+                        onClick: () => onEdit(contact)
+                      },
+                      {
+                        label: "Send Email",
+                        icon: <Mail className="w-4 h-4" />,
+                        onClick: () => {
+                          setEmailContact(contact);
+                          setEmailModalOpen(true);
+                        },
+                        disabled: !contact.email
+                      },
+                      {
+                        label: "Create Meeting",
+                        icon: <CalendarPlus className="w-4 h-4" />,
+                        onClick: () => {
+                          setMeetingContact(contact);
+                          setMeetingModalOpen(true);
+                        }
+                      },
+                      {
+                        label: "Convert to Lead",
+                        icon: <UserPlus className="w-4 h-4" />,
+                        onClick: () => handleConvertToLead(contact),
+                        separator: true
+                      },
+                      {
+                        label: "Delete",
+                        icon: <Trash2 className="w-4 h-4" />,
+                        onClick: () => onDelete(contact.id),
+                        destructive: true,
+                        separator: true
+                      }
+                    ]}
+                  />
                 </div>
               </TableCell>
             </TableRow>
@@ -373,6 +372,25 @@ export const ContactTableBody = ({
           company_name: emailContact.company_name,
           position: emailContact.position,
         } : null}
+      />
+
+      {/* Meeting Modal */}
+      <MeetingModal
+        open={meetingModalOpen}
+        onOpenChange={setMeetingModalOpen}
+        meeting={meetingContact ? {
+          id: '',
+          subject: `Meeting with ${meetingContact.contact_name}`,
+          start_time: new Date().toISOString(),
+          end_time: new Date().toISOString(),
+          contact_id: meetingContact.id,
+          status: 'scheduled'
+        } : null}
+        onSuccess={() => {
+          setMeetingModalOpen(false);
+          setMeetingContact(null);
+          if (onRefresh) onRefresh();
+        }}
       />
     </div>
   );

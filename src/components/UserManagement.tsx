@@ -393,9 +393,9 @@ const UserManagement = () => {
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between">
                 
-                <div className="relative w-72">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Search users by name or email..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10" />
+                <div className="relative w-64">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input placeholder="Search users..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-9" inputSize="control" />
                 </div>
               </div>
             </CardHeader>
@@ -406,35 +406,35 @@ const UserManagement = () => {
                     <TableHead className="w-12">
                       <Checkbox checked={selectedUsers.length === filteredAndSortedUsers.length && filteredAndSortedUsers.length > 0} onCheckedChange={handleSelectAll} />
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => handleSort('name')}>
+                    <TableHead className="cursor-pointer group" onClick={() => handleSort('name')}>
                       <div className="flex items-center gap-1">
                         Display Name
-                        <ArrowUpDown className="h-3 w-3" />
+                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => handleSort('email')}>
+                    <TableHead className="cursor-pointer group" onClick={() => handleSort('email')}>
                       <div className="flex items-center gap-1">
                         Email
-                        <ArrowUpDown className="h-3 w-3" />
+                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => handleSort('role')}>
+                    <TableHead className="cursor-pointer group" onClick={() => handleSort('role')}>
                       <div className="flex items-center gap-1">
                         Role
-                        <ArrowUpDown className="h-3 w-3" />
+                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => handleSort('last_sign_in_at')}>
+                    <TableHead className="cursor-pointer group" onClick={() => handleSort('last_sign_in_at')}>
                       <div className="flex items-center gap-1">
                         Last Login
-                        <ArrowUpDown className="h-3 w-3" />
+                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </TableHead>
-                    <TableHead className="cursor-pointer" onClick={() => handleSort('created_at')}>
+                    <TableHead className="cursor-pointer group" onClick={() => handleSort('created_at')}>
                       <div className="flex items-center gap-1">
                         Created At
-                        <ArrowUpDown className="h-3 w-3" />
+                        <ArrowUpDown className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </TableHead>
                     <TableHead className="text-center">Actions</TableHead>
@@ -460,10 +460,10 @@ const UserManagement = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'M/d/yyyy') : '—'}
+                        {user.last_sign_in_at ? format(new Date(user.last_sign_in_at), 'dd/MM/yyyy') : '—'}
                       </TableCell>
                       <TableCell>
-                        {format(new Date(user.created_at), 'M/d/yyyy')}
+                        {format(new Date(user.created_at), 'dd/MM/yyyy')}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">

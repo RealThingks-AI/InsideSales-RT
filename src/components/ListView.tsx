@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Deal, DealStage, DEAL_STAGES, STAGE_COLORS } from "@/types/deal";
-import { Search, Filter, X, Edit, Trash2, ArrowUp, ArrowDown, CheckSquare } from "lucide-react";
+import { Search, Filter, X, ArrowUp, ArrowDown } from "lucide-react";
+import { RowActionsDropdown, Edit, Trash2, CheckSquare } from "./RowActionsDropdown";
 import { format } from "date-fns";
 import { InlineEditCell } from "./InlineEditCell";
 import { DealColumnCustomizer, DealColumnConfig } from "./DealColumnCustomizer";
@@ -108,7 +109,7 @@ export const ListView = ({
   const formatDate = (date: string | undefined) => {
     if (!date) return '-';
     try {
-      return format(new Date(date), 'MMM dd, yyyy');
+      return format(new Date(date), 'dd/MM/yyyy');
     } catch {
       return '-';
     }
@@ -378,13 +379,14 @@ export const ListView = ({
       <div className="flex-shrink-0 p-4 bg-background border-b">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-col sm:flex-row gap-4 flex-1">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none" />
               <Input
-                placeholder="Search all deal details..."
+                placeholder="Search deals..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 transition-all hover:border-primary/50 focus:border-primary"
+                className="pl-9"
+                inputSize="control"
               />
             </div>
             
@@ -518,40 +520,34 @@ export const ListView = ({
                     </TableCell>
                   ))}
                   <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleActionClick(deal)}
-                        className="hover-scale p-1 h-7 w-7"
-                        title="Actions"
-                      >
-                        <CheckSquare className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => onDealClick(deal)}
-                        className="hover-scale p-1 h-7 w-7"
-                        title="Open deal form"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          onDeleteDeals([deal.id]);
-                          toast({
-                            title: "Deal deleted",
-                            description: `Successfully deleted ${deal.project_name || 'deal'}`,
-                          });
-                        }}
-                        className="hover-scale p-1 h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        title="Delete deal"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <div className="flex items-center justify-center">
+                      <RowActionsDropdown
+                        actions={[
+                          {
+                            label: "Action Items",
+                            icon: <CheckSquare className="w-4 h-4" />,
+                            onClick: () => handleActionClick(deal)
+                          },
+                          {
+                            label: "Edit",
+                            icon: <Edit className="w-4 h-4" />,
+                            onClick: () => onDealClick(deal)
+                          },
+                          {
+                            label: "Delete",
+                            icon: <Trash2 className="w-4 h-4" />,
+                            onClick: () => {
+                              onDeleteDeals([deal.id]);
+                              toast({
+                                title: "Deal deleted",
+                                description: `Successfully deleted ${deal.project_name || 'deal'}`,
+                              });
+                            },
+                            destructive: true,
+                            separator: true
+                          }
+                        ]}
+                      />
                     </div>
                   </TableCell>
                 </TableRow>

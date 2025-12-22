@@ -15,7 +15,6 @@ import { MeetingModal } from "@/components/MeetingModal";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-
 type SortColumn = 'subject' | 'date' | 'time' | 'lead_contact' | 'status' | null;
 type SortDirection = 'asc' | 'desc';
 interface Meeting {
@@ -106,16 +105,12 @@ const Meetings = () => {
       setSortDirection('asc');
     }
   };
-
   const getSortIcon = (column: SortColumn) => {
     if (sortColumn !== column) {
-      return <ArrowUpDown className="h-4 w-4 ml-1 opacity-50" />;
+      return <ArrowUpDown className="h-4 w-4 ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />;
     }
-    return sortDirection === 'asc' 
-      ? <ArrowUp className="h-4 w-4 ml-1" />
-      : <ArrowDown className="h-4 w-4 ml-1" />;
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4 ml-1" /> : <ArrowDown className="h-4 w-4 ml-1" />;
   };
-
   const sortedAndFilteredMeetings = useMemo(() => {
     let filtered = meetings.filter(meeting => {
       const matchesSearch = meeting.subject?.toLowerCase().includes(searchTerm.toLowerCase()) || meeting.lead_name?.toLowerCase().includes(searchTerm.toLowerCase()) || meeting.contact_name?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -123,12 +118,10 @@ const Meetings = () => {
       const meetingStatus = getMeetingStatus(meeting);
       return matchesSearch && meetingStatus === statusFilter;
     });
-
     if (sortColumn) {
       filtered = [...filtered].sort((a, b) => {
         let aValue: string | number = '';
         let bValue: string | number = '';
-
         switch (sortColumn) {
           case 'subject':
             aValue = a.subject?.toLowerCase() || '';
@@ -153,16 +146,13 @@ const Meetings = () => {
             bValue = getMeetingStatus(b);
             break;
         }
-
         if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
         return 0;
       });
     }
-
     return filtered;
   }, [meetings, searchTerm, statusFilter, sortColumn, sortDirection]);
-
   useEffect(() => {
     setFilteredMeetings(sortedAndFilteredMeetings);
   }, [sortedAndFilteredMeetings]);
@@ -234,26 +224,40 @@ const Meetings = () => {
     }
     return <Badge variant="default">Scheduled</Badge>;
   };
-
   const getOutcomeBadge = (outcome: string | null) => {
     if (!outcome) return <span className="text-muted-foreground">—</span>;
-    
-    const outcomeConfig: Record<string, { label: string; icon: React.ReactNode; className: string }> = {
-      successful: { label: "Successful", icon: <CheckCircle2 className="h-3 w-3" />, className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" },
-      follow_up_needed: { label: "Follow-up", icon: <AlertCircle className="h-3 w-3" />, className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" },
-      no_show: { label: "No-show", icon: <UserX className="h-3 w-3" />, className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" },
-      rescheduled: { label: "Rescheduled", icon: <CalendarClock className="h-3 w-3" />, className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" },
+    const outcomeConfig: Record<string, {
+      label: string;
+      icon: React.ReactNode;
+      className: string;
+    }> = {
+      successful: {
+        label: "Successful",
+        icon: <CheckCircle2 className="h-3 w-3" />,
+        className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+      },
+      follow_up_needed: {
+        label: "Follow-up",
+        icon: <AlertCircle className="h-3 w-3" />,
+        className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+      },
+      no_show: {
+        label: "No-show",
+        icon: <UserX className="h-3 w-3" />,
+        className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+      },
+      rescheduled: {
+        label: "Rescheduled",
+        icon: <CalendarClock className="h-3 w-3" />,
+        className: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+      }
     };
-    
     const config = outcomeConfig[outcome];
     if (!config) return <span className="text-muted-foreground">—</span>;
-    
-    return (
-      <Badge variant="outline" className={`gap-1 ${config.className}`}>
+    return <Badge variant="outline" className={`gap-1 ${config.className}`}>
         {config.icon}
         {config.label}
-      </Badge>
-    );
+      </Badge>;
   };
   if (loading) {
     return <div className="flex items-center justify-center h-64">
@@ -269,46 +273,30 @@ const Meetings = () => {
         <div className="px-6 h-16 flex items-center border-b w-full">
           <div className="flex items-center justify-between w-full">
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-bold text-foreground">Meetings</h1>
+              <h1 className="text-2xl text-foreground font-semibold">Meetings</h1>
             </div>
             <div className="flex items-center gap-3">
               {/* View Toggle */}
-              <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
-                <Button
-                  variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('table')}
-                  className="gap-2"
-                >
-                  <List className="h-4 w-4" />
+              <div className="flex items-center gap-0.5 bg-muted rounded-md p-0.5">
+                <Button variant={viewMode === 'table' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('table')} className="gap-1.5 h-8 px-2.5 text-xs">
+                  <List className="h-3.5 w-3.5" />
                   List
                 </Button>
-                <Button
-                  variant={viewMode === 'calendar' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('calendar')}
-                  className="gap-2"
-                >
-                  <CalendarDays className="h-4 w-4" />
+                <Button variant={viewMode === 'calendar' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('calendar')} className="gap-1.5 h-8 px-2.5 text-xs">
+                  <CalendarDays className="h-3.5 w-3.5" />
                   Calendar
                 </Button>
-                <Button
-                  variant={viewMode === 'analytics' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('analytics')}
-                  className="gap-2"
-                >
-                  <BarChart3 className="h-4 w-4" />
+                <Button variant={viewMode === 'analytics' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('analytics')} className="gap-1.5 h-8 px-2.5 text-xs">
+                  <BarChart3 className="h-3.5 w-3.5" />
                   Analytics
                 </Button>
               </div>
               
-              <Button onClick={() => {
-                setEditingMeeting(null);
-                setShowModal(true);
-              }} className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Meeting
+              <Button size="sm" onClick={() => {
+              setEditingMeeting(null);
+              setShowModal(true);
+            }}>
+                Add Meeting
               </Button>
             </div>
           </div>
@@ -317,24 +305,15 @@ const Meetings = () => {
 
       {/* Main Content */}
       <div className="flex-1 min-h-0 overflow-auto p-6">
-        {viewMode === 'analytics' ? (
-          <MeetingAnalyticsDashboard />
-        ) : viewMode === 'calendar' ? (
-          <MeetingsCalendarView 
-            meetings={filteredMeetings} 
-            onMeetingClick={(meeting) => {
-              setEditingMeeting(meeting);
-              setShowModal(true);
-            }}
-            onMeetingUpdated={fetchMeetings}
-          />
-        ) : (
-          <div className="space-y-4">
+        {viewMode === 'analytics' ? <MeetingAnalyticsDashboard /> : viewMode === 'calendar' ? <MeetingsCalendarView meetings={filteredMeetings} onMeetingClick={meeting => {
+        setEditingMeeting(meeting);
+        setShowModal(true);
+      }} onMeetingUpdated={fetchMeetings} /> : <div className="space-y-4">
             {/* Search and Bulk Actions */}
             <div className="flex items-center gap-4">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search meetings..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10" />
+              <div className="relative w-64">
+                <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input placeholder="Search meetings..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-9" inputSize="control" />
               </div>
               
               <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -350,8 +329,7 @@ const Meetings = () => {
               </Select>
               
               {/* Bulk Actions */}
-              {selectedMeetings.length > 0 && (
-                <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-lg">
+              {selectedMeetings.length > 0 && <div className="flex items-center gap-2 bg-muted/50 px-4 py-2 rounded-lg">
                   <span className="text-sm text-muted-foreground">
                     {selectedMeetings.length} selected
                   </span>
@@ -359,8 +337,7 @@ const Meetings = () => {
                     <Trash2 className="h-4 w-4" />
                     Delete Selected
                   </Button>
-                </div>
-              )}
+                </div>}
             </div>
 
             {/* Table */}
@@ -369,54 +346,34 @@ const Meetings = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[50px]">
-                      <Checkbox 
-                        checked={isAllSelected} 
-                        ref={el => {
-                          if (el) {
-                            (el as any).indeterminate = isSomeSelected;
-                          }
-                        }} 
-                        onCheckedChange={handleSelectAll} 
-                        aria-label="Select all" 
-                      />
+                      <Checkbox checked={isAllSelected} ref={el => {
+                    if (el) {
+                      (el as any).indeterminate = isSomeSelected;
+                    }
+                  }} onCheckedChange={handleSelectAll} aria-label="Select all" />
                     </TableHead>
                     <TableHead>
-                      <button 
-                        onClick={() => handleSort('subject')} 
-                        className="flex items-center hover:text-foreground transition-colors"
-                      >
+                      <button onClick={() => handleSort('subject')} className="group flex items-center hover:text-foreground transition-colors">
                         Subject {getSortIcon('subject')}
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
-                        onClick={() => handleSort('date')} 
-                        className="flex items-center hover:text-foreground transition-colors"
-                      >
+                      <button onClick={() => handleSort('date')} className="group flex items-center hover:text-foreground transition-colors">
                         Date {getSortIcon('date')}
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
-                        onClick={() => handleSort('time')} 
-                        className="flex items-center hover:text-foreground transition-colors"
-                      >
+                      <button onClick={() => handleSort('time')} className="group flex items-center hover:text-foreground transition-colors">
                         Time {getSortIcon('time')}
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
-                        onClick={() => handleSort('lead_contact')} 
-                        className="flex items-center hover:text-foreground transition-colors"
-                      >
+                      <button onClick={() => handleSort('lead_contact')} className="group flex items-center hover:text-foreground transition-colors">
                         Lead/Contact {getSortIcon('lead_contact')}
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
-                        onClick={() => handleSort('status')} 
-                        className="flex items-center hover:text-foreground transition-colors"
-                      >
+                      <button onClick={() => handleSort('status')} className="group flex items-center hover:text-foreground transition-colors">
                         Status {getSortIcon('status')}
                       </button>
                     </TableHead>
@@ -426,26 +383,18 @@ const Meetings = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMeetings.length === 0 ? (
-                    <TableRow>
+                  {filteredMeetings.length === 0 ? <TableRow>
                       <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                         <Calendar className="h-12 w-12 mx-auto mb-2 opacity-50" />
                         No meetings found
                       </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredMeetings.map(meeting => (
-                      <TableRow key={meeting.id} className={selectedMeetings.includes(meeting.id) ? "bg-muted/50" : ""}>
+                    </TableRow> : filteredMeetings.map(meeting => <TableRow key={meeting.id} className={selectedMeetings.includes(meeting.id) ? "bg-muted/50" : ""}>
                         <TableCell>
-                          <Checkbox 
-                            checked={selectedMeetings.includes(meeting.id)} 
-                            onCheckedChange={checked => handleSelectMeeting(meeting.id, !!checked)} 
-                            aria-label={`Select ${meeting.subject}`} 
-                          />
+                          <Checkbox checked={selectedMeetings.includes(meeting.id)} onCheckedChange={checked => handleSelectMeeting(meeting.id, !!checked)} aria-label={`Select ${meeting.subject}`} />
                         </TableCell>
                         <TableCell className="font-medium">{meeting.subject}</TableCell>
                         <TableCell className="text-sm">
-                          {format(new Date(meeting.start_time), 'MMM dd, yyyy')}
+                          {format(new Date(meeting.start_time), 'dd/MM/yyyy')}
                         </TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {format(new Date(meeting.start_time), 'HH:mm')} - {format(new Date(meeting.end_time), 'HH:mm')}
@@ -458,39 +407,32 @@ const Meetings = () => {
                         <TableCell>{getStatusBadge(meeting.status, meeting.start_time)}</TableCell>
                         <TableCell>{getOutcomeBadge(meeting.outcome || null)}</TableCell>
                         <TableCell>
-                          {meeting.join_url ? (
-                            <a href={meeting.join_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                          {meeting.join_url ? <a href={meeting.join_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline flex items-center gap-1">
                               <Video className="h-4 w-4" />
                               Join
-                            </a>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
+                            </a> : <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Button variant="ghost" size="icon" onClick={() => {
-                              setEditingMeeting(meeting);
-                              setShowModal(true);
-                            }}>
+                      setEditingMeeting(meeting);
+                      setShowModal(true);
+                    }}>
                               <Edit className="h-4 w-4" />
                             </Button>
                             <Button variant="ghost" size="icon" onClick={() => {
-                              setMeetingToDelete(meeting.id);
-                              setShowDeleteDialog(true);
-                            }}>
+                      setMeetingToDelete(meeting.id);
+                      setShowDeleteDialog(true);
+                    }}>
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                      </TableRow>)}
                 </TableBody>
               </Table>
             </Card>
-          </div>
-        )}
+          </div>}
       </div>
 
       {/* Modals */}

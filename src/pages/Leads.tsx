@@ -64,19 +64,9 @@ const Leads = () => {
         <div className="px-6 h-16 flex items-center border-b w-full">
           <div className="flex items-center justify-between w-full">
             <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-bold text-foreground">Leads</h1>
+              <h1 className="text-2xl text-foreground font-semibold">Leads</h1>
             </div>
-            <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Columns</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <div className="flex items-center gap-3">
           
           {selectedLeads.length > 0 && <TooltipProvider>
               <Tooltip>
@@ -93,8 +83,8 @@ const Leads = () => {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon">
-                <MoreVertical className="w-4 h-4" />
+              <Button variant="outline" size="sm">
+                Actions
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
@@ -117,18 +107,9 @@ const Leads = () => {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="icon" onClick={() => setShowModal(true)}>
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Add Lead</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button variant="outline" size="sm" onClick={() => setShowModal(true)}>
+            Add Lead
+          </Button>
             </div>
           </div>
         </div>

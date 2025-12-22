@@ -118,13 +118,14 @@ export const TaskListView = ({
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-4 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="Search tasks..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
+            inputSize="control"
           />
         </div>
         
@@ -243,7 +244,7 @@ export const TaskListView = ({
                       <TableCell>
                         {task.due_date ? (
                           <span className={getDueDateColor(task.due_date)}>
-                            {format(new Date(task.due_date), 'MMM d, yyyy')}
+                            {format(new Date(task.due_date), 'dd/MM/yyyy')}
                             {task.due_time && ` ${task.due_time}`}
                           </span>
                         ) : (
