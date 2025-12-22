@@ -131,69 +131,90 @@ const YearlyRevenueSummary = ({
       {/* Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="hover-scale">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Annual Target</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 min-h-12">
+            <CardTitle className="text-sm font-medium leading-none">Annual Target</CardTitle>
             <div className="flex items-center gap-1">
               <Target className="w-4 h-4 text-primary" />
-              {!editingTarget ? <Button variant="ghost" size="sm" onClick={() => {
-              setEditingTarget(true);
-              setTargetValue(revenueData?.target?.toString() || '');
-            }}>
-                  <Edit2 className="w-3 h-3" />
-                </Button> : <div className="flex gap-1">
-                  <Button variant="ghost" size="sm" onClick={handleSaveTarget}>
-                    <Check className="w-3 h-3" />
+              {!editingTarget ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => {
+                    setEditingTarget(true);
+                    setTargetValue(revenueData?.target?.toString() || "");
+                  }}
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                </Button>
+              ) : (
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleSaveTarget}>
+                    <Check className="w-3.5 h-3.5" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => setEditingTarget(false)}>
-                    <X className="w-3 h-3" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7"
+                    onClick={() => setEditingTarget(false)}
+                  >
+                    <X className="w-3.5 h-3.5" />
                   </Button>
-                </div>}
+                </div>
+              )}
             </div>
           </CardHeader>
-          <CardContent>
-            {editingTarget ? <Input value={targetValue} onChange={e => setTargetValue(e.target.value)} placeholder="Enter target amount" type="number" /> : <div className="text-2xl font-bold">{formatCurrency(revenueData?.target || 0)}</div>}
-            <p className="text-xs text-muted-foreground">Set for {selectedYear}</p>
+          <CardContent className="space-y-1">
+            {editingTarget ? (
+              <Input
+                value={targetValue}
+                onChange={e => setTargetValue(e.target.value)}
+                placeholder="Enter target amount"
+                type="number"
+              />
+            ) : (
+              <div className="text-2xl font-bold leading-none tabular-nums">{formatCurrency(revenueData?.target || 0)}</div>
+            )}
+            <p className="text-xs text-muted-foreground leading-none">Set for {selectedYear}</p>
           </CardContent>
         </Card>
 
         <Card className="hover-scale cursor-pointer" onClick={() => handleCardClick('actual')}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Actual Revenue</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 min-h-12">
+            <CardTitle className="text-sm font-medium leading-none">Actual Revenue</CardTitle>
             <Euro className="w-4 h-4 text-green-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+          <CardContent className="space-y-1">
+            <div className="text-2xl font-bold leading-none tabular-nums text-green-600">
               {formatCurrency(revenueData?.totalActual || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {progressPercentage.toFixed(1)}% of target
-            </p>
+            <p className="text-xs text-muted-foreground leading-none">{progressPercentage.toFixed(1)}% of target</p>
           </CardContent>
         </Card>
 
         <Card className="hover-scale cursor-pointer" onClick={() => handleCardClick('projected')}>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Projected Revenue</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 min-h-12">
+            <CardTitle className="text-sm font-medium leading-none">Projected Revenue</CardTitle>
             <TrendingUp className="w-4 h-4 text-blue-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+          <CardContent className="space-y-1">
+            <div className="text-2xl font-bold leading-none tabular-nums text-blue-600">
               {formatCurrency(revenueData?.totalProjected || 0)}
             </div>
-            <p className="text-xs text-muted-foreground">From RFQ deals</p>
+            <p className="text-xs text-muted-foreground leading-none">From RFQ deals</p>
           </CardContent>
         </Card>
 
         <Card className="hover-scale">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Forecast</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 min-h-12">
+            <CardTitle className="text-sm font-medium leading-none">Total Forecast</CardTitle>
             <Calendar className="w-4 h-4 text-purple-600" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
+          <CardContent className="space-y-1">
+            <div className="text-2xl font-bold leading-none tabular-nums text-purple-600">
               {formatCurrency(totalCombined)}
             </div>
-            <p className="text-xs text-muted-foreground">Actual + Projected</p>
+            <p className="text-xs text-muted-foreground leading-none">Actual + Projected</p>
           </CardContent>
         </Card>
       </div>
