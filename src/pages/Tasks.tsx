@@ -5,10 +5,11 @@ import { TaskModal } from '@/components/tasks/TaskModal';
 import { TaskListView } from '@/components/tasks/TaskListView';
 import { TaskKanbanView } from '@/components/tasks/TaskKanbanView';
 import { TaskCalendarView } from '@/components/tasks/TaskCalendarView';
+
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { List, LayoutGrid, Calendar, Loader2 } from 'lucide-react';
+import { Plus, List, LayoutGrid, Calendar, Loader2 } from 'lucide-react';
 type ViewMode = 'list' | 'kanban' | 'calendar';
 const Tasks = () => {
   const {
@@ -97,7 +98,6 @@ const Tasks = () => {
         {viewMode === 'kanban' && <TaskKanbanView tasks={tasks} onEdit={handleEdit} onDelete={handleDelete} onStatusChange={handleStatusChange} />}
 
         {viewMode === 'calendar' && <TaskCalendarView tasks={tasks} onEdit={handleEdit} />}
-
       </div>
 
       {/* Task Modal */}
