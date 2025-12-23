@@ -389,7 +389,7 @@ const Meetings = () => {
                           <Checkbox checked={selectedMeetings.includes(meeting.id)} onCheckedChange={checked => handleSelectMeeting(meeting.id, !!checked)} aria-label={`Select ${meeting.subject}`} />
                         </TableCell>
                         <TableCell 
-                          className="font-medium cursor-pointer hover:text-primary hover:underline"
+                          className="font-medium text-primary cursor-pointer hover:underline"
                           onClick={() => {
                             setEditingMeeting(meeting);
                             setShowModal(true);
