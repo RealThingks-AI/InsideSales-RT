@@ -644,27 +644,30 @@ const UserDashboard = () => {
       // Fetch this week, last week, and all time in parallel
       const [
         // This week
-        leadsThisWeek, contactsThisWeek, dealsThisWeek, meetingsThisWeek, tasksThisWeek,
+        leadsThisWeek, contactsThisWeek, accountsThisWeek, dealsThisWeek, meetingsThisWeek, tasksThisWeek,
         // Last week
-        leadsLastWeek, contactsLastWeek, dealsLastWeek, meetingsLastWeek, tasksLastWeek,
+        leadsLastWeek, contactsLastWeek, accountsLastWeek, dealsLastWeek, meetingsLastWeek, tasksLastWeek,
         // All time
-        leadsAllTime, contactsAllTime, dealsAllTime, meetingsAllTime, tasksAllTime
+        leadsAllTime, contactsAllTime, accountsAllTime, dealsAllTime, meetingsAllTime, tasksAllTime
       ] = await Promise.all([
         // This week
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_time', startStr).lte('created_time', endStr),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_time', startStr).lte('created_time', endStr),
+        supabase.from('accounts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_at', startStr).lte('created_at', endStr),
         supabase.from('deals').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_at', startStr).lte('created_at', endStr),
         supabase.from('meetings').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).eq('status', 'completed').gte('start_time', startStr).lte('start_time', endStr),
         supabase.from('tasks').select('id', { count: 'exact', head: true }).or(`assigned_to.eq.${user?.id},created_by.eq.${user?.id}`).eq('status', 'completed').gte('completed_at', startStr).lte('completed_at', endStr),
         // Last week
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_time', lastStartStr).lte('created_time', lastEndStr),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_time', lastStartStr).lte('created_time', lastEndStr),
+        supabase.from('accounts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_at', lastStartStr).lte('created_at', lastEndStr),
         supabase.from('deals').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_at', lastStartStr).lte('created_at', lastEndStr),
         supabase.from('meetings').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).eq('status', 'completed').gte('start_time', lastStartStr).lte('start_time', lastEndStr),
         supabase.from('tasks').select('id', { count: 'exact', head: true }).or(`assigned_to.eq.${user?.id},created_by.eq.${user?.id}`).eq('status', 'completed').gte('completed_at', lastStartStr).lte('completed_at', lastEndStr),
         // All time
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('created_by', user?.id),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id),
+        supabase.from('accounts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id),
         supabase.from('deals').select('id', { count: 'exact', head: true }).eq('created_by', user?.id),
         supabase.from('meetings').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).eq('status', 'completed'),
         supabase.from('tasks').select('id', { count: 'exact', head: true }).or(`assigned_to.eq.${user?.id},created_by.eq.${user?.id}`).eq('status', 'completed'),
@@ -674,6 +677,7 @@ const UserDashboard = () => {
         thisWeek: {
           leads: leadsThisWeek.count || 0,
           contacts: contactsThisWeek.count || 0,
+          accounts: accountsThisWeek.count || 0,
           deals: dealsThisWeek.count || 0,
           meetings: meetingsThisWeek.count || 0,
           tasks: tasksThisWeek.count || 0,
@@ -681,6 +685,7 @@ const UserDashboard = () => {
         lastWeek: {
           leads: leadsLastWeek.count || 0,
           contacts: contactsLastWeek.count || 0,
+          accounts: accountsLastWeek.count || 0,
           deals: dealsLastWeek.count || 0,
           meetings: meetingsLastWeek.count || 0,
           tasks: tasksLastWeek.count || 0,
@@ -688,6 +693,7 @@ const UserDashboard = () => {
         allTime: {
           leads: leadsAllTime.count || 0,
           contacts: contactsAllTime.count || 0,
+          accounts: accountsAllTime.count || 0,
           deals: dealsAllTime.count || 0,
           meetings: meetingsAllTime.count || 0,
           tasks: tasksAllTime.count || 0,
@@ -1362,6 +1368,7 @@ const UserDashboard = () => {
         const allZeros = weeklySummaryView === 'thisWeek' && 
           (currentData?.leads || 0) === 0 && 
           (currentData?.contacts || 0) === 0 && 
+          (currentData?.accounts || 0) === 0 && 
           (currentData?.deals || 0) === 0 && 
           (currentData?.meetings || 0) === 0 && 
           (currentData?.tasks || 0) === 0;
@@ -1377,6 +1384,7 @@ const UserDashboard = () => {
         const summaryItems = [
           { key: 'leads', label: 'Leads', color: 'blue', value: currentData?.leads || 0, lastWeek: lastWeekData?.leads || 0, nav: '/leads', tooltip: weeklySummaryView === 'thisWeek' ? 'New leads created this week' : 'Total leads (all time)', action: () => setLeadModalOpen(true) },
           { key: 'contacts', label: 'Contacts', color: 'green', value: currentData?.contacts || 0, lastWeek: lastWeekData?.contacts || 0, nav: '/contacts', tooltip: weeklySummaryView === 'thisWeek' ? 'New contacts added this week' : 'Total contacts (all time)', action: () => setContactModalOpen(true) },
+          { key: 'accounts', label: 'Accounts', color: 'cyan', value: currentData?.accounts || 0, lastWeek: lastWeekData?.accounts || 0, nav: '/accounts', tooltip: weeklySummaryView === 'thisWeek' ? 'New accounts created this week' : 'Total accounts (all time)', action: () => setAccountModalOpen(true) },
           { key: 'deals', label: 'Deals', color: 'purple', value: currentData?.deals || 0, lastWeek: lastWeekData?.deals || 0, nav: '/deals', tooltip: weeklySummaryView === 'thisWeek' ? 'New deals created this week' : 'Total deals (all time)', action: () => navigate('/deals') },
           { key: 'meetings', label: 'Meetings', color: 'indigo', value: currentData?.meetings || 0, lastWeek: lastWeekData?.meetings || 0, nav: '/meetings', tooltip: weeklySummaryView === 'thisWeek' ? 'Meetings completed this week' : 'Meetings completed (all time)', action: () => setCreateMeetingModalOpen(true) },
           { key: 'tasks', label: 'Tasks', color: 'emerald', value: currentData?.tasks || 0, lastWeek: lastWeekData?.tasks || 0, nav: '/tasks', tooltip: weeklySummaryView === 'thisWeek' ? 'Tasks completed this week' : 'Tasks completed (all time)', action: () => { setSelectedTask(null); setTaskModalOpen(true); } },
@@ -1386,7 +1394,7 @@ const UserDashboard = () => {
           <Card className="h-full animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
               <CardTitle className="flex items-center gap-1.5 text-sm font-medium truncate">
-                {weeklySummaryView === 'thisWeek' ? 'This Week' : 'All Time'}
+                {weeklySummaryView === 'thisWeek' ? 'Activity This Week' : 'Activity All Time'}
               </CardTitle>
               <div className="flex items-center gap-1.5 flex-shrink-0">
                 {weeklySummaryView === 'thisWeek' && (
@@ -1419,6 +1427,9 @@ const UserDashboard = () => {
                     <Button variant="outline" size="sm" className="h-5 text-[9px] px-2 gap-0.5" onClick={() => !isResizeMode && setContactModalOpen(true)}>
                       <Plus className="w-2.5 h-2.5" /> Contact
                     </Button>
+                    <Button variant="outline" size="sm" className="h-5 text-[9px] px-2 gap-0.5" onClick={() => !isResizeMode && setAccountModalOpen(true)}>
+                      <Plus className="w-2.5 h-2.5" /> Account
+                    </Button>
                     <Button variant="outline" size="sm" className="h-5 text-[9px] px-2 gap-0.5" onClick={() => !isResizeMode && setCreateMeetingModalOpen(true)}>
                       <Plus className="w-2.5 h-2.5" /> Meeting
                     </Button>
@@ -1428,7 +1439,7 @@ const UserDashboard = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-5 gap-1 text-center">
+                <div className="grid grid-cols-6 gap-1 text-center">
                   {summaryItems.map((item) => {
                     const trend = getTrendIndicator(item.value, item.lastWeek);
                     const TrendIcon = trend?.icon;
