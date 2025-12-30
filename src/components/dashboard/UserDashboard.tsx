@@ -954,6 +954,18 @@ const UserDashboard = () => {
 
       case "todaysAgenda":
         const totalAgendaItems = (todaysMeetings?.length || 0) + (todaysTasks?.length || 0) + (overdueTasks?.length || 0);
+        const handleQuickCompleteTask = async (taskId: string, e: React.MouseEvent) => {
+          e.stopPropagation();
+          try {
+            await supabase.from('tasks').update({ status: 'completed', completed_at: new Date().toISOString() }).eq('id', taskId);
+            queryClient.invalidateQueries({ queryKey: ['user-todays-tasks', user?.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-overdue-tasks', user?.id] });
+            queryClient.invalidateQueries({ queryKey: ['user-task-reminders-enhanced', user?.id] });
+            toast.success("Task completed");
+          } catch (error) {
+            toast.error("Failed to complete task");
+          }
+        };
         return (
           <Card className="h-full animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
@@ -961,52 +973,126 @@ const UserDashboard = () => {
                 <CalendarClock className="w-4 h-4 text-primary flex-shrink-0" />
                 Today's Agenda
               </CardTitle>
-              <span className="text-[9px] text-muted-foreground flex-shrink-0">{format(new Date(), 'EEE, MMM d')}</span>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-[9px] text-muted-foreground">{format(new Date(), 'EEE, MMM d')}</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => !isResizeMode && navigate('/tasks')}>
+                        <ListTodo className="w-3 h-3" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>View all tasks</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </CardHeader>
             <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col">
               {totalAgendaItems > 0 ? (
-                <div className="flex-1 min-h-0 overflow-hidden space-y-1">
-                  {(overdueTasks?.length || 0) > 0 && (
-                    <div>
-                      <p className="text-[9px] font-medium text-red-600 mb-0.5">⚠️ Overdue ({overdueTasks?.length})</p>
-                      {overdueTasks?.slice(0, 1).map((task: any) => (
-                        <div key={task.id} className="text-[9px] p-1 rounded bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 truncate">
-                          {task.title}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {(todaysMeetings?.length || 0) > 0 && (
-                    <div>
-                      <p className="text-[9px] font-medium text-muted-foreground mb-0.5">Meetings ({todaysMeetings?.length})</p>
-                      {todaysMeetings?.slice(0, 1).map((meeting: any) => (
-                        <div key={meeting.id} className="text-[9px] p-1 rounded bg-blue-50 dark:bg-blue-900/20 flex items-center gap-1">
-                          <Calendar className="w-2.5 h-2.5 text-blue-600 flex-shrink-0" />
-                          <span className="truncate flex-1 min-w-0">{meeting.subject}</span>
-                          <span className="text-muted-foreground flex-shrink-0">{format(new Date(meeting.start_time), 'HH:mm')}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {(todaysTasks?.length || 0) > 0 && (
-                    <div>
-                      <p className="text-[9px] font-medium text-muted-foreground mb-0.5">Tasks Due ({todaysTasks?.length})</p>
-                      {todaysTasks?.slice(0, 1).map((task: any) => (
-                        <div key={task.id} className="text-[9px] p-1 rounded bg-orange-50 dark:bg-orange-900/20 truncate">
-                          {task.title}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="space-y-1.5 pr-2">
+                    {(overdueTasks?.length || 0) > 0 && (
+                      <div>
+                        <p 
+                          className="text-[9px] font-medium text-red-600 mb-0.5 cursor-pointer hover:underline"
+                          onClick={() => !isResizeMode && navigate('/tasks?filter=overdue')}
+                        >
+                          ⚠️ Overdue ({overdueTasks?.length})
+                        </p>
+                        {overdueTasks?.slice(0, 3).map((task: any) => (
+                          <div 
+                            key={task.id} 
+                            className="text-[9px] p-1.5 rounded bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 mb-1 flex items-center gap-1 group cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                            onClick={() => { if (!isResizeMode) { setSelectedTask(task); setTaskModalOpen(true); }}}
+                          >
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button 
+                                    className="w-3.5 h-3.5 rounded border border-red-300 dark:border-red-600 hover:bg-green-500 hover:border-green-500 flex items-center justify-center flex-shrink-0 transition-colors"
+                                    onClick={(e) => handleQuickCompleteTask(task.id, e)}
+                                  >
+                                    <Check className="w-2 h-2 opacity-0 group-hover:opacity-100 text-white" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Mark complete</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <span className="truncate flex-1">{task.title}</span>
+                            <span className="text-[8px] text-red-500 flex-shrink-0">{format(new Date(task.due_date), 'MMM d')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(todaysMeetings?.length || 0) > 0 && (
+                      <div>
+                        <p 
+                          className="text-[9px] font-medium text-muted-foreground mb-0.5 cursor-pointer hover:underline"
+                          onClick={() => !isResizeMode && navigate('/meetings')}
+                        >
+                          <Calendar className="w-2.5 h-2.5 inline mr-0.5" />
+                          Meetings ({todaysMeetings?.length})
+                        </p>
+                        {todaysMeetings?.slice(0, 3).map((meeting: any) => (
+                          <div 
+                            key={meeting.id} 
+                            className="text-[9px] p-1.5 rounded bg-blue-50 dark:bg-blue-900/20 flex items-center gap-1 mb-1 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                            onClick={() => { if (!isResizeMode) { setSelectedMeeting(meeting); setMeetingModalOpen(true); }}}
+                          >
+                            <Calendar className="w-2.5 h-2.5 text-blue-600 flex-shrink-0" />
+                            <span className="truncate flex-1 min-w-0 text-blue-700 dark:text-blue-300">{meeting.subject}</span>
+                            <span className="text-blue-600 font-medium flex-shrink-0">{format(new Date(meeting.start_time), 'HH:mm')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {(todaysTasks?.length || 0) > 0 && (
+                      <div>
+                        <p 
+                          className="text-[9px] font-medium text-muted-foreground mb-0.5 cursor-pointer hover:underline"
+                          onClick={() => !isResizeMode && navigate('/tasks?dueDate=today')}
+                        >
+                          <ListTodo className="w-2.5 h-2.5 inline mr-0.5" />
+                          Tasks Due ({todaysTasks?.length})
+                        </p>
+                        {todaysTasks?.slice(0, 3).map((task: any) => (
+                          <div 
+                            key={task.id} 
+                            className="text-[9px] p-1.5 rounded bg-orange-50 dark:bg-orange-900/20 flex items-center gap-1 mb-1 group cursor-pointer hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-colors"
+                            onClick={() => { if (!isResizeMode) { setSelectedTask(task); setTaskModalOpen(true); }}}
+                          >
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button 
+                                    className="w-3.5 h-3.5 rounded border border-orange-300 dark:border-orange-600 hover:bg-green-500 hover:border-green-500 flex items-center justify-center flex-shrink-0 transition-colors"
+                                    onClick={(e) => handleQuickCompleteTask(task.id, e)}
+                                  >
+                                    <Check className="w-2 h-2 opacity-0 group-hover:opacity-100 text-white" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Mark complete</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            <span className="truncate flex-1 text-orange-700 dark:text-orange-300">{task.title}</span>
+                            {task.priority === 'high' && <span className="text-[8px] px-1 py-0.5 rounded bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200 flex-shrink-0">High</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
               ) : (
-                <div className="flex-1 min-h-0 flex items-center justify-center">
+                <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-2">
                   <EmptyState
                     title="Clear day ahead"
                     description="No meetings or tasks scheduled for today"
                     illustration="calendar"
                     variant="compact"
                   />
+                  <Button variant="outline" size="sm" className="text-[10px] h-6" onClick={() => { if (!isResizeMode) { setSelectedTask(null); setTaskModalOpen(true); }}}>
+                    <Plus className="w-3 h-3 mr-1" /> Add Task
+                  </Button>
                 </div>
               )}
             </CardContent>
@@ -1102,6 +1188,37 @@ const UserDashboard = () => {
         );
 
       case "recentActivities":
+        const getActivityIcon = (action: string, resourceType: string) => {
+          const iconClass = "w-2.5 h-2.5";
+          if (action === 'CREATE') return <Plus className={`${iconClass} text-green-600`} />;
+          if (action === 'DELETE') return <X className={`${iconClass} text-red-600`} />;
+          // UPDATE
+          switch (resourceType) {
+            case 'leads': return <Users className={`${iconClass} text-blue-600`} />;
+            case 'contacts': return <Users className={`${iconClass} text-green-600`} />;
+            case 'deals': return <Briefcase className={`${iconClass} text-purple-600`} />;
+            case 'accounts': return <Building2 className={`${iconClass} text-indigo-600`} />;
+            case 'meetings': return <Calendar className={`${iconClass} text-teal-600`} />;
+            case 'tasks': return <ListTodo className={`${iconClass} text-orange-600`} />;
+            default: return <Activity className={`${iconClass} text-primary`} />;
+          }
+        };
+        const getActivityBadge = (action: string) => {
+          if (action === 'CREATE') return { text: 'Created', class: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' };
+          if (action === 'DELETE') return { text: 'Deleted', class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' };
+          return { text: 'Updated', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' };
+        };
+        const navigateToEntity = (resourceType: string) => {
+          if (isResizeMode) return;
+          switch (resourceType) {
+            case 'leads': navigate('/leads'); break;
+            case 'contacts': navigate('/contacts'); break;
+            case 'deals': navigate('/deals'); break;
+            case 'accounts': navigate('/accounts'); break;
+            case 'meetings': navigate('/meetings'); break;
+            case 'tasks': navigate('/tasks'); break;
+          }
+        };
         return (
           <Card className="h-full animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
@@ -1109,23 +1226,39 @@ const UserDashboard = () => {
                 <Activity className="w-4 h-4 text-primary flex-shrink-0" />
                 Recent Activities
               </CardTitle>
-              <Button variant="ghost" size="sm" className="h-6 text-xs flex-shrink-0" onClick={() => !isResizeMode && navigate('/notifications')}>View All</Button>
+              <Button variant="ghost" size="sm" className="h-6 text-xs flex-shrink-0" onClick={() => !isResizeMode && navigate('/settings?tab=audit')}>View All</Button>
             </CardHeader>
             <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col">
               {recentActivities && recentActivities.length > 0 ? (
-                <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
-                  {recentActivities.slice(0, 5).map((activity) => (
-                    <div key={activity.id} className="flex items-start gap-1.5 p-1.5 rounded bg-muted/50">
-                      <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Activity className="w-2.5 h-2.5 text-primary" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-[10px] font-medium line-clamp-2">{activity.subject}</p>
-                        <p className="text-[9px] text-muted-foreground">{format(new Date(activity.activity_date), 'MMM d, HH:mm')}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="space-y-1.5 pr-2">
+                    {recentActivities.slice(0, 5).map((activity) => {
+                      const badge = getActivityBadge(activity.activity_type);
+                      return (
+                        <div 
+                          key={activity.id} 
+                          className="flex items-start gap-1.5 p-1.5 rounded bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                          onClick={() => navigateToEntity(activity.resource_type)}
+                        >
+                          <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                            activity.activity_type === 'CREATE' ? 'bg-green-100 dark:bg-green-900/30' :
+                            activity.activity_type === 'DELETE' ? 'bg-red-100 dark:bg-red-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
+                          }`}>
+                            {getActivityIcon(activity.activity_type, activity.resource_type)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1 mb-0.5">
+                              <span className={`text-[8px] px-1 py-0.5 rounded ${badge.class}`}>{badge.text}</span>
+                              <span className="text-[8px] text-muted-foreground capitalize">{activity.resource_type}</span>
+                            </div>
+                            <p className="text-[10px] font-medium line-clamp-2">{activity.subject}</p>
+                            <p className="text-[9px] text-muted-foreground">{format(new Date(activity.activity_date), 'MMM d, HH:mm')}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
               ) : (
                 <div className="flex-1 min-h-0 flex items-center justify-center">
                   <EmptyState
@@ -1171,40 +1304,107 @@ const UserDashboard = () => {
         );
 
       case "weeklySummary":
+        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
         return (
           <Card className="h-full animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="text-sm font-medium truncate">This Week</CardTitle>
-              <ListTodo className="w-4 h-4 text-teal-600 flex-shrink-0" />
+              <CardTitle className="flex items-center gap-1.5 text-sm font-medium truncate">
+                This Week
+              </CardTitle>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <span className="text-[8px] text-muted-foreground">{format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')}</span>
+                <ListTodo className="w-4 h-4 text-teal-600" />
+              </div>
             </CardHeader>
             <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col justify-center">
               <div className="grid grid-cols-5 gap-1 text-center">
-                <div className="p-1 rounded bg-blue-50 dark:bg-blue-950/20 flex flex-col items-center justify-center">
-                  <p className="text-sm font-bold text-blue-600 leading-tight">{weeklySummary?.newLeads || 0}</p>
-                  <p className="text-[8px] text-muted-foreground leading-tight">Leads</p>
-                </div>
-                <div className="p-1 rounded bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center">
-                  <p className="text-sm font-bold text-green-600 leading-tight">{weeklySummary?.newContacts || 0}</p>
-                  <p className="text-[8px] text-muted-foreground leading-tight">Contacts</p>
-                </div>
-                <div className="p-1 rounded bg-purple-50 dark:bg-purple-950/20 flex flex-col items-center justify-center">
-                  <p className="text-sm font-bold text-purple-600 leading-tight">{weeklySummary?.newDeals || 0}</p>
-                  <p className="text-[8px] text-muted-foreground leading-tight">Deals</p>
-                </div>
-                <div className="p-1 rounded bg-indigo-50 dark:bg-indigo-950/20 flex flex-col items-center justify-center">
-                  <p className="text-sm font-bold text-indigo-600 leading-tight">{weeklySummary?.meetingsCompleted || 0}</p>
-                  <p className="text-[8px] text-muted-foreground leading-tight">Meetings</p>
-                </div>
-                <div className="p-1 rounded bg-emerald-50 dark:bg-emerald-950/20 flex flex-col items-center justify-center">
-                  <p className="text-sm font-bold text-emerald-600 leading-tight">{weeklySummary?.tasksCompleted || 0}</p>
-                  <p className="text-[8px] text-muted-foreground leading-tight">Tasks</p>
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div 
+                        className="p-1.5 rounded bg-blue-50 dark:bg-blue-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors"
+                        onClick={() => !isResizeMode && navigate('/leads?createdThisWeek=true&owner=me')}
+                      >
+                        <p className="text-sm font-bold text-blue-600 leading-tight">{weeklySummary?.newLeads || 0}</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">Leads</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>New leads created this week</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div 
+                        className="p-1.5 rounded bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-green-100 dark:hover:bg-green-950/40 transition-colors"
+                        onClick={() => !isResizeMode && navigate('/contacts?createdThisWeek=true&owner=me')}
+                      >
+                        <p className="text-sm font-bold text-green-600 leading-tight">{weeklySummary?.newContacts || 0}</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">Contacts</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>New contacts added this week</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div 
+                        className="p-1.5 rounded bg-purple-50 dark:bg-purple-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-950/40 transition-colors"
+                        onClick={() => !isResizeMode && navigate('/deals')}
+                      >
+                        <p className="text-sm font-bold text-purple-600 leading-tight">{weeklySummary?.newDeals || 0}</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">Deals</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>New deals created this week</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div 
+                        className="p-1.5 rounded bg-indigo-50 dark:bg-indigo-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-950/40 transition-colors"
+                        onClick={() => !isResizeMode && navigate('/meetings?status=completed')}
+                      >
+                        <p className="text-sm font-bold text-indigo-600 leading-tight">{weeklySummary?.meetingsCompleted || 0}</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">Meetings</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Meetings completed this week</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div 
+                        className="p-1.5 rounded bg-emerald-50 dark:bg-emerald-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition-colors"
+                        onClick={() => !isResizeMode && navigate('/tasks?status=completed')}
+                      >
+                        <p className="text-sm font-bold text-emerald-600 leading-tight">{weeklySummary?.tasksCompleted || 0}</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">Tasks</p>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>Tasks completed this week</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </CardContent>
           </Card>
         );
 
       case "followUpsDue":
+        const handleCompleteFollowUp = async (followUpId: string, e: React.MouseEvent) => {
+          e.stopPropagation();
+          try {
+            await supabase.from('meeting_follow_ups').update({ status: 'completed' }).eq('id', followUpId);
+            queryClient.invalidateQueries({ queryKey: ['user-follow-ups-due', user?.id] });
+            toast.success("Follow-up completed");
+          } catch (error) {
+            toast.error("Failed to complete follow-up");
+          }
+        };
         return (
           <Card className="h-full animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
@@ -1215,24 +1415,65 @@ const UserDashboard = () => {
                     {followUpsDue?.overdue} overdue
                   </span>
                 )}
-                <ClipboardList className="w-4 h-4 text-amber-600" />
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => !isResizeMode && navigate('/meetings')}>
+                        <ClipboardList className="w-4 h-4 text-amber-600" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>View all meetings</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </CardHeader>
             <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col">
               {followUpsDue?.followUps && followUpsDue.followUps.length > 0 ? (
-                <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5">
-                  {followUpsDue.followUps.map((followUp: any) => {
-                    const isOverdue = followUp.due_date && isBefore(new Date(followUp.due_date), new Date());
-                    return (
-                      <div key={followUp.id} className={`p-1.5 rounded text-[10px] ${isOverdue ? 'bg-red-50 dark:bg-red-900/20' : 'bg-muted/50'}`}>
-                        <p className="font-medium truncate">{followUp.title}</p>
-                        <p className={`text-[9px] text-muted-foreground ${isOverdue ? 'text-red-600' : ''}`}>
-                          Due: {followUp.due_date ? format(new Date(followUp.due_date), 'MMM d') : 'No date'}
-                        </p>
-                      </div>
-                    );
-                  })}
-                </div>
+                <ScrollArea className="flex-1 min-h-0">
+                  <div className="space-y-1.5 pr-2">
+                    {followUpsDue.followUps.map((followUp: any) => {
+                      const isOverdue = followUp.due_date && isBefore(new Date(followUp.due_date), new Date());
+                      return (
+                        <div 
+                          key={followUp.id} 
+                          className={`p-1.5 rounded text-[10px] flex items-start gap-1.5 group cursor-pointer transition-colors ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30' : 'bg-muted/50 hover:bg-muted'}`}
+                          onClick={async () => {
+                            if (isResizeMode) return;
+                            // Fetch meeting details and open modal
+                            const { data: meeting } = await supabase.from('meetings').select('*').eq('id', followUp.meeting_id).single();
+                            if (meeting) {
+                              setSelectedMeeting(meeting);
+                              setMeetingModalOpen(true);
+                            }
+                          }}
+                        >
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <button 
+                                  className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors ${isOverdue ? 'border-red-300 dark:border-red-600 hover:bg-green-500 hover:border-green-500' : 'border-muted-foreground/30 hover:bg-green-500 hover:border-green-500'}`}
+                                  onClick={(e) => handleCompleteFollowUp(followUp.id, e)}
+                                >
+                                  <Check className="w-2 h-2 opacity-0 group-hover:opacity-100 text-white" />
+                                </button>
+                              </TooltipTrigger>
+                              <TooltipContent>Mark complete</TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate">{followUp.title}</p>
+                            <div className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                              <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
+                                {isOverdue ? '⚠️ Overdue: ' : 'Due: '}
+                                {followUp.due_date ? format(new Date(followUp.due_date), 'MMM d') : 'No date'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
               ) : (
                 <div className="flex-1 min-h-0 flex items-center justify-center text-muted-foreground text-[10px]">
                   No pending follow-ups
