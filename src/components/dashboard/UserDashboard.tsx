@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   Users, FileText, Briefcase, Plus, Settings2, Calendar, Activity, Bell, 
-  Mail, Building2, ListTodo, CalendarClock, ClipboardList, Check, X
+  Mail, Building2, ListTodo, CalendarClock, ClipboardList, Check, X, TrendingUp, TrendingDown, Minus
 } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { WidgetKey, WidgetLayoutConfig, DEFAULT_WIDGETS } from "./DashboardCustomizeModal";
@@ -620,29 +620,80 @@ const UserDashboard = () => {
     enabled: !!user?.id
   });
 
-  // Weekly summary
+  // Weekly summary view mode state
+  const [weeklySummaryView, setWeeklySummaryView] = useState<'thisWeek' | 'allTime'>('thisWeek');
+
+  // Weekly summary with comparison data
   const { data: weeklySummary } = useQuery({
-    queryKey: ['user-weekly-summary', user?.id],
+    queryKey: ['user-weekly-summary-enhanced', user?.id],
     queryFn: async () => {
-      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-      const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+      const now = new Date();
+      const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
       const startStr = weekStart.toISOString();
       const endStr = weekEnd.toISOString();
       
-      const [leadsRes, contactsRes, dealsRes, meetingsRes, tasksRes] = await Promise.all([
+      // Last week dates
+      const lastWeekStart = new Date(weekStart);
+      lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+      const lastWeekEnd = new Date(weekEnd);
+      lastWeekEnd.setDate(lastWeekEnd.getDate() - 7);
+      const lastStartStr = lastWeekStart.toISOString();
+      const lastEndStr = lastWeekEnd.toISOString();
+      
+      // Fetch this week, last week, and all time in parallel
+      const [
+        // This week
+        leadsThisWeek, contactsThisWeek, dealsThisWeek, meetingsThisWeek, tasksThisWeek,
+        // Last week
+        leadsLastWeek, contactsLastWeek, dealsLastWeek, meetingsLastWeek, tasksLastWeek,
+        // All time
+        leadsAllTime, contactsAllTime, dealsAllTime, meetingsAllTime, tasksAllTime
+      ] = await Promise.all([
+        // This week
         supabase.from('leads').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_time', startStr).lte('created_time', endStr),
         supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_time', startStr).lte('created_time', endStr),
         supabase.from('deals').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_at', startStr).lte('created_at', endStr),
         supabase.from('meetings').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).eq('status', 'completed').gte('start_time', startStr).lte('start_time', endStr),
         supabase.from('tasks').select('id', { count: 'exact', head: true }).or(`assigned_to.eq.${user?.id},created_by.eq.${user?.id}`).eq('status', 'completed').gte('completed_at', startStr).lte('completed_at', endStr),
+        // Last week
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_time', lastStartStr).lte('created_time', lastEndStr),
+        supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_time', lastStartStr).lte('created_time', lastEndStr),
+        supabase.from('deals').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).gte('created_at', lastStartStr).lte('created_at', lastEndStr),
+        supabase.from('meetings').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).eq('status', 'completed').gte('start_time', lastStartStr).lte('start_time', lastEndStr),
+        supabase.from('tasks').select('id', { count: 'exact', head: true }).or(`assigned_to.eq.${user?.id},created_by.eq.${user?.id}`).eq('status', 'completed').gte('completed_at', lastStartStr).lte('completed_at', lastEndStr),
+        // All time
+        supabase.from('leads').select('id', { count: 'exact', head: true }).eq('created_by', user?.id),
+        supabase.from('contacts').select('id', { count: 'exact', head: true }).eq('created_by', user?.id),
+        supabase.from('deals').select('id', { count: 'exact', head: true }).eq('created_by', user?.id),
+        supabase.from('meetings').select('id', { count: 'exact', head: true }).eq('created_by', user?.id).eq('status', 'completed'),
+        supabase.from('tasks').select('id', { count: 'exact', head: true }).or(`assigned_to.eq.${user?.id},created_by.eq.${user?.id}`).eq('status', 'completed'),
       ]);
       
       return {
-        newLeads: leadsRes.count || 0,
-        newContacts: contactsRes.count || 0,
-        newDeals: dealsRes.count || 0,
-        meetingsCompleted: meetingsRes.count || 0,
-        tasksCompleted: tasksRes.count || 0,
+        thisWeek: {
+          leads: leadsThisWeek.count || 0,
+          contacts: contactsThisWeek.count || 0,
+          deals: dealsThisWeek.count || 0,
+          meetings: meetingsThisWeek.count || 0,
+          tasks: tasksThisWeek.count || 0,
+        },
+        lastWeek: {
+          leads: leadsLastWeek.count || 0,
+          contacts: contactsLastWeek.count || 0,
+          deals: dealsLastWeek.count || 0,
+          meetings: meetingsLastWeek.count || 0,
+          tasks: tasksLastWeek.count || 0,
+        },
+        allTime: {
+          leads: leadsAllTime.count || 0,
+          contacts: contactsAllTime.count || 0,
+          deals: dealsAllTime.count || 0,
+          meetings: meetingsAllTime.count || 0,
+          tasks: tasksAllTime.count || 0,
+        },
+        weekStart,
+        weekEnd,
       };
     },
     enabled: !!user?.id
@@ -1304,92 +1355,112 @@ const UserDashboard = () => {
         );
 
       case "weeklySummary":
-        const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
-        const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+        const summaryWeekStart = weeklySummary?.weekStart || startOfWeek(new Date(), { weekStartsOn: 1 });
+        const summaryWeekEnd = weeklySummary?.weekEnd || endOfWeek(new Date(), { weekStartsOn: 1 });
+        const currentData = weeklySummaryView === 'thisWeek' ? weeklySummary?.thisWeek : weeklySummary?.allTime;
+        const lastWeekData = weeklySummary?.lastWeek;
+        const allZeros = weeklySummaryView === 'thisWeek' && 
+          (currentData?.leads || 0) === 0 && 
+          (currentData?.contacts || 0) === 0 && 
+          (currentData?.deals || 0) === 0 && 
+          (currentData?.meetings || 0) === 0 && 
+          (currentData?.tasks || 0) === 0;
+
+        const getTrendIndicator = (current: number, previous: number) => {
+          if (weeklySummaryView !== 'thisWeek') return null;
+          const diff = current - previous;
+          if (diff > 0) return { icon: TrendingUp, color: 'text-green-500', diff: `+${diff}` };
+          if (diff < 0) return { icon: TrendingDown, color: 'text-red-500', diff: `${diff}` };
+          return { icon: Minus, color: 'text-muted-foreground', diff: '0' };
+        };
+
+        const summaryItems = [
+          { key: 'leads', label: 'Leads', color: 'blue', value: currentData?.leads || 0, lastWeek: lastWeekData?.leads || 0, nav: '/leads', tooltip: weeklySummaryView === 'thisWeek' ? 'New leads created this week' : 'Total leads (all time)', action: () => setLeadModalOpen(true) },
+          { key: 'contacts', label: 'Contacts', color: 'green', value: currentData?.contacts || 0, lastWeek: lastWeekData?.contacts || 0, nav: '/contacts', tooltip: weeklySummaryView === 'thisWeek' ? 'New contacts added this week' : 'Total contacts (all time)', action: () => setContactModalOpen(true) },
+          { key: 'deals', label: 'Deals', color: 'purple', value: currentData?.deals || 0, lastWeek: lastWeekData?.deals || 0, nav: '/deals', tooltip: weeklySummaryView === 'thisWeek' ? 'New deals created this week' : 'Total deals (all time)', action: () => navigate('/deals') },
+          { key: 'meetings', label: 'Meetings', color: 'indigo', value: currentData?.meetings || 0, lastWeek: lastWeekData?.meetings || 0, nav: '/meetings', tooltip: weeklySummaryView === 'thisWeek' ? 'Meetings completed this week' : 'Meetings completed (all time)', action: () => setCreateMeetingModalOpen(true) },
+          { key: 'tasks', label: 'Tasks', color: 'emerald', value: currentData?.tasks || 0, lastWeek: lastWeekData?.tasks || 0, nav: '/tasks', tooltip: weeklySummaryView === 'thisWeek' ? 'Tasks completed this week' : 'Tasks completed (all time)', action: () => { setSelectedTask(null); setTaskModalOpen(true); } },
+        ];
+
         return (
           <Card className="h-full animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
               <CardTitle className="flex items-center gap-1.5 text-sm font-medium truncate">
-                This Week
+                {weeklySummaryView === 'thisWeek' ? 'This Week' : 'All Time'}
               </CardTitle>
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <span className="text-[8px] text-muted-foreground">{format(weekStart, 'MMM d')} - {format(weekEnd, 'MMM d')}</span>
-                <ListTodo className="w-4 h-4 text-teal-600" />
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                {weeklySummaryView === 'thisWeek' && (
+                  <span className="text-[8px] text-muted-foreground">{format(summaryWeekStart, 'MMM d')} - {format(summaryWeekEnd, 'MMM d')}</span>
+                )}
+                <div className="flex rounded-md overflow-hidden border border-border text-[8px]">
+                  <button
+                    className={`px-1.5 py-0.5 transition-colors ${weeklySummaryView === 'thisWeek' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                    onClick={() => setWeeklySummaryView('thisWeek')}
+                  >
+                    Week
+                  </button>
+                  <button
+                    className={`px-1.5 py-0.5 transition-colors ${weeklySummaryView === 'allTime' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+                    onClick={() => setWeeklySummaryView('allTime')}
+                  >
+                    All
+                  </button>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col justify-center">
-              <div className="grid grid-cols-5 gap-1 text-center">
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div 
-                        className="p-1.5 rounded bg-blue-50 dark:bg-blue-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-950/40 transition-colors"
-                        onClick={() => !isResizeMode && navigate('/leads?createdThisWeek=true&owner=me')}
-                      >
-                        <p className="text-sm font-bold text-blue-600 leading-tight">{weeklySummary?.newLeads || 0}</p>
-                        <p className="text-[8px] text-muted-foreground leading-tight">Leads</p>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>New leads created this week</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div 
-                        className="p-1.5 rounded bg-green-50 dark:bg-green-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-green-100 dark:hover:bg-green-950/40 transition-colors"
-                        onClick={() => !isResizeMode && navigate('/contacts?createdThisWeek=true&owner=me')}
-                      >
-                        <p className="text-sm font-bold text-green-600 leading-tight">{weeklySummary?.newContacts || 0}</p>
-                        <p className="text-[8px] text-muted-foreground leading-tight">Contacts</p>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>New contacts added this week</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div 
-                        className="p-1.5 rounded bg-purple-50 dark:bg-purple-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-purple-100 dark:hover:bg-purple-950/40 transition-colors"
-                        onClick={() => !isResizeMode && navigate('/deals')}
-                      >
-                        <p className="text-sm font-bold text-purple-600 leading-tight">{weeklySummary?.newDeals || 0}</p>
-                        <p className="text-[8px] text-muted-foreground leading-tight">Deals</p>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>New deals created this week</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div 
-                        className="p-1.5 rounded bg-indigo-50 dark:bg-indigo-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-950/40 transition-colors"
-                        onClick={() => !isResizeMode && navigate('/meetings?status=completed')}
-                      >
-                        <p className="text-sm font-bold text-indigo-600 leading-tight">{weeklySummary?.meetingsCompleted || 0}</p>
-                        <p className="text-[8px] text-muted-foreground leading-tight">Meetings</p>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>Meetings completed this week</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div 
-                        className="p-1.5 rounded bg-emerald-50 dark:bg-emerald-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-950/40 transition-colors"
-                        onClick={() => !isResizeMode && navigate('/tasks?status=completed')}
-                      >
-                        <p className="text-sm font-bold text-emerald-600 leading-tight">{weeklySummary?.tasksCompleted || 0}</p>
-                        <p className="text-[8px] text-muted-foreground leading-tight">Tasks</p>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>Tasks completed this week</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
+              {allZeros ? (
+                <div className="flex flex-col items-center justify-center gap-2">
+                  <p className="text-[10px] text-muted-foreground text-center">No activity yet this week</p>
+                  <div className="flex flex-wrap justify-center gap-1">
+                    <Button variant="outline" size="sm" className="h-5 text-[9px] px-2 gap-0.5" onClick={() => !isResizeMode && setLeadModalOpen(true)}>
+                      <Plus className="w-2.5 h-2.5" /> Lead
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-5 text-[9px] px-2 gap-0.5" onClick={() => !isResizeMode && setContactModalOpen(true)}>
+                      <Plus className="w-2.5 h-2.5" /> Contact
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-5 text-[9px] px-2 gap-0.5" onClick={() => !isResizeMode && setCreateMeetingModalOpen(true)}>
+                      <Plus className="w-2.5 h-2.5" /> Meeting
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-5 text-[9px] px-2 gap-0.5" onClick={() => { if (!isResizeMode) { setSelectedTask(null); setTaskModalOpen(true); }}}>
+                      <Plus className="w-2.5 h-2.5" /> Task
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-5 gap-1 text-center">
+                  {summaryItems.map((item) => {
+                    const trend = getTrendIndicator(item.value, item.lastWeek);
+                    const TrendIcon = trend?.icon;
+                    return (
+                      <TooltipProvider key={item.key}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div 
+                              className={`p-1.5 rounded bg-${item.color}-50 dark:bg-${item.color}-950/20 flex flex-col items-center justify-center cursor-pointer hover:bg-${item.color}-100 dark:hover:bg-${item.color}-950/40 transition-colors relative`}
+                              onClick={() => !isResizeMode && navigate(item.nav)}
+                            >
+                              <p className={`text-sm font-bold text-${item.color}-600 leading-tight`}>{item.value}</p>
+                              <p className="text-[8px] text-muted-foreground leading-tight">{item.label}</p>
+                              {TrendIcon && weeklySummaryView === 'thisWeek' && (
+                                <div className={`absolute -top-0.5 -right-0.5 flex items-center ${trend.color}`}>
+                                  <TrendIcon className="w-2.5 h-2.5" />
+                                </div>
+                              )}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{item.tooltip}</p>
+                            {weeklySummaryView === 'thisWeek' && (
+                              <p className="text-[10px] text-muted-foreground">vs last week: {trend?.diff}</p>
+                            )}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         );
