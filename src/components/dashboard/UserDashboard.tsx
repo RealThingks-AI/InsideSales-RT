@@ -6,8 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { 
   Users, FileText, Briefcase, Plus, Settings2, Calendar, Activity, Bell, 
-  Mail, Building2, ListTodo, CalendarClock, ClipboardList, Check, X, TrendingUp, TrendingDown, Minus
+  Mail, Building2, ListTodo, CalendarClock, ClipboardList, Check, X, TrendingUp, TrendingDown, Minus, User
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { useUserRole } from "@/hooks/useUserRole";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { WidgetKey, WidgetLayoutConfig, DEFAULT_WIDGETS } from "./DashboardCustomizeModal";
 import { ResizableDashboard } from "./ResizableDashboard";
@@ -78,8 +80,13 @@ const compactLayoutsUtil = (layouts: WidgetLayoutConfig, visibleKeys: WidgetKey[
   return compacted;
 };
 
-const UserDashboard = () => {
+interface UserDashboardProps {
+  hideHeader?: boolean;
+}
+
+const UserDashboard = ({ hideHeader = false }: UserDashboardProps) => {
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isResizeMode, setIsResizeMode] = useState(false);
@@ -108,21 +115,30 @@ const UserDashboard = () => {
   useEffect(() => {
     const updateWidth = () => {
       if (containerRef.current) {
-        // Get the actual content width (excluding padding)
+        // Get computed styles to account for padding
         const styles = getComputedStyle(containerRef.current);
         const paddingLeft = parseFloat(styles.paddingLeft) || 0;
         const paddingRight = parseFloat(styles.paddingRight) || 0;
-        const contentWidth = containerRef.current.clientWidth - paddingLeft - paddingRight;
-        setContainerWidth(Math.max(320, contentWidth));
+        // Use inner width (excluding padding) for accurate grid sizing
+        const width = containerRef.current.clientWidth - paddingLeft - paddingRight;
+        setContainerWidth(Math.max(320, width));
       }
     };
-    // Use ResizeObserver for more accurate width tracking
+    
+    // ResizeObserver for container size changes
     const observer = new ResizeObserver(updateWidth);
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
+    
+    // Also listen to window resize for viewport changes
+    window.addEventListener('resize', updateWidth);
     updateWidth();
-    return () => observer.disconnect();
+    
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
   }, []);
   
   const { data: userName } = useQuery({
@@ -144,13 +160,29 @@ const UserDashboard = () => {
     enabled: !!user?.id,
   });
 
+  // Fetch user preferences for currency
+  const { data: userPreferences } = useQuery({
+    queryKey: ['user-preferences', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('user_preferences')
+        .select('currency')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   const { data: dashboardPrefs } = useQuery({
     queryKey: ['dashboard-prefs', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase
         .from('dashboard_preferences')
-        .select('visible_widgets, card_order, layout_view')
+        .select('visible_widgets, card_order, widget_layouts, layout_view')
         .eq('user_id', user.id)
         .maybeSingle();
       if (error) throw error;
@@ -168,6 +200,12 @@ const UserDashboard = () => {
   const [widgetOrder, setWidgetOrder] = useState<WidgetKey[]>(defaultWidgetKeys);
 
   const parseWidgetLayouts = (): WidgetLayoutConfig => {
+    // Prefer new widget_layouts column (jsonb)
+    const widgetLayoutsData = (dashboardPrefs as any)?.widget_layouts;
+    if (widgetLayoutsData && typeof widgetLayoutsData === "object") {
+      return widgetLayoutsData as WidgetLayoutConfig;
+    }
+    // Fallback to legacy layout_view parsing
     if (!dashboardPrefs?.layout_view) return {};
     if (typeof dashboardPrefs.layout_view === "object") {
       return dashboardPrefs.layout_view as WidgetLayoutConfig;
@@ -179,7 +217,7 @@ const UserDashboard = () => {
           return parsed as WidgetLayoutConfig;
         }
       } catch {
-        // Legacy string value
+        // Legacy string value (e.g., "overview")
       }
     }
     return {};
@@ -223,7 +261,7 @@ const UserDashboard = () => {
     setVisibleWidgets(nextVisible);
     setWidgetOrder(nextOrder);
     setWidgetLayouts(compactedLayouts);
-  }, [user?.id, dashboardPrefs?.visible_widgets, dashboardPrefs?.card_order, dashboardPrefs?.layout_view]);
+  }, [user?.id, dashboardPrefs?.visible_widgets, dashboardPrefs?.card_order, (dashboardPrefs as any)?.widget_layouts, dashboardPrefs?.layout_view]);
 
   const savePreferencesMutation = useMutation({
     mutationFn: async ({ widgets, order, layouts }: { widgets: WidgetKey[], order: WidgetKey[], layouts: WidgetLayoutConfig }) => {
@@ -234,9 +272,9 @@ const UserDashboard = () => {
           user_id: user.id,
           visible_widgets: widgets,
           card_order: order,
-          layout_view: JSON.stringify(layouts),
+          widget_layouts: layouts,
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
+        } as any, { onConflict: 'user_id' })
         .select();
       if (error) throw error;
       return data;
@@ -622,6 +660,9 @@ const UserDashboard = () => {
 
   // Weekly summary view mode state
   const [weeklySummaryView, setWeeklySummaryView] = useState<'thisWeek' | 'allTime'>('thisWeek');
+  
+  // Recent activities toggle state (for admin only)
+  const [showAllActivities, setShowAllActivities] = useState(false);
 
   // Weekly summary with comparison data
   const { data: weeklySummary } = useQuery({
@@ -728,16 +769,22 @@ const UserDashboard = () => {
   };
 
   const { data: recentActivities } = useQuery({
-    queryKey: ['user-recent-activities', user?.id, userProfiles],
+    queryKey: ['user-recent-activities', user?.id, userProfiles, showAllActivities],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('security_audit_log')
         .select('id, action, resource_type, resource_id, created_at, details, user_id')
-        .eq('user_id', user?.id)
         .in('action', ['CREATE', 'UPDATE', 'DELETE'])
         .in('resource_type', ['contacts', 'leads', 'deals', 'accounts', 'meetings', 'tasks'])
         .order('created_at', { ascending: false })
-        .limit(5);
+        .limit(10);
+      
+      // Only filter by user_id if not showing all activities
+      if (!showAllActivities) {
+        query = query.eq('user_id', user?.id);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
 
       return (data || []).map(log => {
@@ -773,16 +820,19 @@ const UserDashboard = () => {
           activity_type: log.action,
           activity_date: log.created_at,
           resource_type: log.resource_type,
+          user_id: log.user_id,
         };
       });
     },
     enabled: !!user?.id && !!userProfiles
   });
 
+  const userCurrency = userPreferences?.currency || 'INR';
+  
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'EUR',
+      currency: userCurrency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(amount);
@@ -812,7 +862,12 @@ const UserDashboard = () => {
         return (
           <Card className="h-full hover:shadow-lg transition-shadow animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="text-sm font-medium truncate">My Leads</CardTitle>
+              <CardTitle 
+                className="text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={() => !isResizeMode && navigate('/leads')}
+              >
+                My Leads
+              </CardTitle>
               <Button variant="outline" size="sm" className="h-6 text-xs gap-1 flex-shrink-0" onClick={() => !isResizeMode && setLeadModalOpen(true)}>
                 <Plus className="w-3 h-3" /> Add Lead
               </Button>
@@ -856,7 +911,12 @@ const UserDashboard = () => {
         return (
           <Card className="h-full hover:shadow-lg transition-shadow animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="text-sm font-medium truncate">My Contacts</CardTitle>
+              <CardTitle 
+                className="text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={() => !isResizeMode && navigate('/contacts')}
+              >
+                My Contacts
+              </CardTitle>
               <Button variant="outline" size="sm" className="h-6 text-xs gap-1 flex-shrink-0" onClick={() => !isResizeMode && setContactModalOpen(true)}>
                 <Plus className="w-3 h-3" /> Add Contact
               </Button>
@@ -900,7 +960,12 @@ const UserDashboard = () => {
         return (
           <Card className="h-full hover:shadow-lg transition-shadow animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="text-sm font-medium truncate">My Deals</CardTitle>
+              <CardTitle 
+                className="text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={() => !isResizeMode && navigate('/deals')}
+              >
+                My Deals
+              </CardTitle>
               <Button variant="outline" size="sm" className="h-6 text-xs gap-1 flex-shrink-0" onClick={() => !isResizeMode && navigate('/deals')}>
                 View All
               </Button>
@@ -944,7 +1009,12 @@ const UserDashboard = () => {
         return (
           <Card className="h-full hover:shadow-lg transition-shadow animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="text-sm font-medium truncate">My Accounts</CardTitle>
+              <CardTitle 
+                className="text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={() => !isResizeMode && navigate('/accounts')}
+              >
+                My Accounts
+              </CardTitle>
               <Button variant="outline" size="sm" className="h-6 text-xs gap-1 flex-shrink-0" onClick={() => !isResizeMode && setAccountModalOpen(true)}>
                 <Plus className="w-3 h-3" /> Add Account
               </Button>
@@ -1160,7 +1230,12 @@ const UserDashboard = () => {
         return (
           <Card className="h-full hover:shadow-lg transition-shadow animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="text-sm font-medium truncate">My Meetings</CardTitle>
+              <CardTitle 
+                className="text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={() => !isResizeMode && navigate('/meetings')}
+              >
+                My Meetings
+              </CardTitle>
               <Button variant="outline" size="sm" className="h-6 text-xs gap-1 flex-shrink-0" onClick={() => !isResizeMode && setCreateMeetingModalOpen(true)}>
                 <Plus className="w-3 h-3" /> Add Meeting
               </Button>
@@ -1204,7 +1279,12 @@ const UserDashboard = () => {
         return (
           <Card className="h-full hover:shadow-lg transition-shadow animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="text-sm font-medium truncate">My Tasks</CardTitle>
+              <CardTitle 
+                className="text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={() => !isResizeMode && navigate('/tasks')}
+              >
+                My Tasks
+              </CardTitle>
               <Button variant="outline" size="sm" className="h-6 text-xs gap-1 flex-shrink-0" onClick={() => { if (!isResizeMode) { setSelectedTask(null); setTaskModalOpen(true); }}}>
                 <Plus className="w-3 h-3" /> Add Task
               </Button>
@@ -1246,7 +1326,7 @@ const UserDashboard = () => {
 
       case "recentActivities":
         const getActivityIcon = (action: string, resourceType: string) => {
-          const iconClass = "w-2.5 h-2.5";
+          const iconClass = "w-3 h-3";
           if (action === 'CREATE') return <Plus className={`${iconClass} text-green-600`} />;
           if (action === 'DELETE') return <X className={`${iconClass} text-red-600`} />;
           // UPDATE
@@ -1265,6 +1345,37 @@ const UserDashboard = () => {
           if (action === 'DELETE') return { text: 'Deleted', class: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' };
           return { text: 'Updated', class: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' };
         };
+        const getIconBgColor = (action: string, resourceType: string) => {
+          if (action === 'CREATE') return 'bg-green-100 dark:bg-green-900/30';
+          if (action === 'DELETE') return 'bg-red-100 dark:bg-red-900/30';
+          switch (resourceType) {
+            case 'leads': return 'bg-blue-100 dark:bg-blue-900/30';
+            case 'contacts': return 'bg-emerald-100 dark:bg-emerald-900/30';
+            case 'deals': return 'bg-purple-100 dark:bg-purple-900/30';
+            case 'accounts': return 'bg-indigo-100 dark:bg-indigo-900/30';
+            case 'meetings': return 'bg-teal-100 dark:bg-teal-900/30';
+            case 'tasks': return 'bg-orange-100 dark:bg-orange-900/30';
+            default: return 'bg-muted';
+          }
+        };
+        const formatRelativeTime = (dateStr: string) => {
+          const date = new Date(dateStr);
+          const now = new Date();
+          const diffMs = now.getTime() - date.getTime();
+          const diffMins = Math.floor(diffMs / 60000);
+          const diffHrs = Math.floor(diffMs / 3600000);
+          const diffDays = Math.floor(diffMs / 86400000);
+          
+          if (diffMins < 1) return 'Just now';
+          if (diffMins < 60) return `${diffMins}m ago`;
+          if (diffHrs < 24) return `${diffHrs}h ago`;
+          if (diffDays < 7) return `${diffDays}d ago`;
+          return format(date, 'MMM d');
+        };
+        const getActivityUserName = (activityUserId: string) => {
+          const profile = userProfiles?.find(p => p.id === activityUserId);
+          return profile?.full_name || 'Unknown User';
+        };
         const navigateToEntity = (resourceType: string) => {
           if (isResizeMode) return;
           switch (resourceType) {
@@ -1279,37 +1390,87 @@ const UserDashboard = () => {
         return (
           <Card className="h-full animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="flex items-center gap-1.5 text-sm font-medium truncate">
+              <CardTitle 
+                className="flex items-center gap-1.5 text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={() => !isResizeMode && navigate('/settings?tab=audit')}
+              >
                 <Activity className="w-4 h-4 text-primary flex-shrink-0" />
                 Recent Activities
               </CardTitle>
-              <Button variant="ghost" size="sm" className="h-6 text-xs flex-shrink-0" onClick={() => !isResizeMode && navigate('/settings?tab=audit')}>View All</Button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {isAdmin && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-muted-foreground whitespace-nowrap">
+                      {showAllActivities ? 'All' : 'My'}
+                    </span>
+                    <Switch
+                      checked={showAllActivities}
+                      onCheckedChange={setShowAllActivities}
+                      className="scale-75 data-[state=checked]:bg-primary"
+                    />
+                  </div>
+                )}
+                <Button variant="ghost" size="sm" className="h-6 text-xs flex-shrink-0" onClick={() => !isResizeMode && navigate('/settings?tab=audit')}>
+                  View All
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col">
               {recentActivities && recentActivities.length > 0 ? (
                 <ScrollArea className="flex-1 min-h-0">
-                  <div className="space-y-1.5 pr-2">
-                    {recentActivities.slice(0, 5).map((activity) => {
+                  <div className="space-y-2 pr-2">
+                    {recentActivities.slice(0, 8).map((activity) => {
                       const badge = getActivityBadge(activity.activity_type);
+                      const isOwnActivity = activity.user_id === user?.id;
                       return (
                         <div 
                           key={activity.id} 
-                          className="flex items-start gap-1.5 p-1.5 rounded bg-muted/50 hover:bg-muted cursor-pointer transition-colors"
+                          className="flex gap-3 p-2.5 rounded-lg bg-muted/40 hover:bg-muted hover:shadow-sm cursor-pointer transition-all"
                           onClick={() => navigateToEntity(activity.resource_type)}
                         >
-                          <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
-                            activity.activity_type === 'CREATE' ? 'bg-green-100 dark:bg-green-900/30' :
-                            activity.activity_type === 'DELETE' ? 'bg-red-100 dark:bg-red-900/30' : 'bg-blue-100 dark:bg-blue-900/30'
-                          }`}>
+                          {/* Left: Icon */}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${getIconBgColor(activity.activity_type, activity.resource_type)}`}>
                             {getActivityIcon(activity.activity_type, activity.resource_type)}
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-1 mb-0.5">
-                              <span className={`text-[8px] px-1 py-0.5 rounded ${badge.class}`}>{badge.text}</span>
-                              <span className="text-[8px] text-muted-foreground capitalize">{activity.resource_type}</span>
+                          
+                          {/* Right: Content */}
+                          <div className="flex-1 min-w-0">
+                            {/* Top row: Badge + Resource + Timestamp */}
+                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                              <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                <span className="text-[10px] text-muted-foreground capitalize font-medium truncate">
+                                  {activity.resource_type}
+                                </span>
+                              </div>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${badge.class}`}>
+                                {badge.text}
+                              </span>
+                              <TooltipProvider delayDuration={100}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-[9px] text-muted-foreground whitespace-nowrap flex-shrink-0">
+                                      {formatRelativeTime(activity.activity_date)}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="text-xs">
+                                    {format(new Date(activity.activity_date), 'MMM d, yyyy HH:mm')}
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
-                            <p className="text-[10px] font-medium line-clamp-2">{activity.subject}</p>
-                            <p className="text-[9px] text-muted-foreground">{format(new Date(activity.activity_date), 'MMM d, HH:mm')}</p>
+                            
+                            {/* User name (All Activities mode only, for non-self activities) */}
+                            {showAllActivities && !isOwnActivity && (
+                              <p className="text-[9px] text-muted-foreground mb-0.5 flex items-center gap-1">
+                                <User className="w-2.5 h-2.5" />
+                                {getActivityUserName(activity.user_id)}
+                              </p>
+                            )}
+                            
+                            {/* Description */}
+                            <p className="text-[11px] font-medium line-clamp-2 leading-snug">
+                              {activity.subject}
+                            </p>
                           </div>
                         </div>
                       );
@@ -1319,8 +1480,8 @@ const UserDashboard = () => {
               ) : (
                 <div className="flex-1 min-h-0 flex items-center justify-center">
                   <EmptyState
-                    title="No recent activities"
-                    description="Activities will appear as you work"
+                    title={showAllActivities ? "No team activities" : "No recent activities"}
+                    description={showAllActivities ? "Team activities will appear here" : "Activities will appear as you work"}
                     illustration="activities"
                     variant="compact"
                   />
@@ -1334,7 +1495,12 @@ const UserDashboard = () => {
         return (
           <Card className="h-full animate-fade-in overflow-hidden flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between py-2 px-3 flex-shrink-0">
-              <CardTitle className="text-sm font-medium truncate">Email Statistics</CardTitle>
+              <CardTitle 
+                className="text-sm font-medium truncate cursor-pointer hover:text-primary transition-colors"
+                onClick={() => !isResizeMode && navigate('/settings?tab=email-history')}
+              >
+                Email Statistics
+              </CardTitle>
               <Mail className="w-4 h-4 text-blue-600 flex-shrink-0" />
             </CardHeader>
             <CardContent className="px-3 pb-3 pt-0 flex-1 min-h-0 flex flex-col justify-center gap-2">
@@ -1381,13 +1547,23 @@ const UserDashboard = () => {
           return { icon: Minus, color: 'text-muted-foreground', diff: '0' };
         };
 
+        // Build navigation URLs with date filters for "this week" view
+        const buildNavUrl = (basePath: string) => {
+          if (weeklySummaryView === 'thisWeek') {
+            const fromStr = summaryWeekStart.toISOString();
+            const toStr = summaryWeekEnd.toISOString();
+            return `${basePath}?from=${encodeURIComponent(fromStr)}&to=${encodeURIComponent(toStr)}&status=all`;
+          }
+          return `${basePath}?status=all`;
+        };
+
         const summaryItems = [
-          { key: 'leads', label: 'Leads', color: 'blue', value: currentData?.leads || 0, lastWeek: lastWeekData?.leads || 0, nav: '/leads', tooltip: weeklySummaryView === 'thisWeek' ? 'New leads created this week' : 'Total leads (all time)', action: () => setLeadModalOpen(true) },
-          { key: 'contacts', label: 'Contacts', color: 'green', value: currentData?.contacts || 0, lastWeek: lastWeekData?.contacts || 0, nav: '/contacts', tooltip: weeklySummaryView === 'thisWeek' ? 'New contacts added this week' : 'Total contacts (all time)', action: () => setContactModalOpen(true) },
-          { key: 'accounts', label: 'Accounts', color: 'cyan', value: currentData?.accounts || 0, lastWeek: lastWeekData?.accounts || 0, nav: '/accounts', tooltip: weeklySummaryView === 'thisWeek' ? 'New accounts created this week' : 'Total accounts (all time)', action: () => setAccountModalOpen(true) },
-          { key: 'deals', label: 'Deals', color: 'purple', value: currentData?.deals || 0, lastWeek: lastWeekData?.deals || 0, nav: '/deals', tooltip: weeklySummaryView === 'thisWeek' ? 'New deals created this week' : 'Total deals (all time)', action: () => navigate('/deals') },
-          { key: 'meetings', label: 'Meetings', color: 'indigo', value: currentData?.meetings || 0, lastWeek: lastWeekData?.meetings || 0, nav: '/meetings', tooltip: weeklySummaryView === 'thisWeek' ? 'Meetings completed this week' : 'Meetings completed (all time)', action: () => setCreateMeetingModalOpen(true) },
-          { key: 'tasks', label: 'Tasks', color: 'emerald', value: currentData?.tasks || 0, lastWeek: lastWeekData?.tasks || 0, nav: '/tasks', tooltip: weeklySummaryView === 'thisWeek' ? 'Tasks completed this week' : 'Tasks completed (all time)', action: () => { setSelectedTask(null); setTaskModalOpen(true); } },
+          { key: 'leads', label: 'Leads', color: 'blue', value: currentData?.leads || 0, lastWeek: lastWeekData?.leads || 0, nav: buildNavUrl('/leads'), tooltip: weeklySummaryView === 'thisWeek' ? 'New leads created this week' : 'Total leads (all time)', action: () => setLeadModalOpen(true) },
+          { key: 'contacts', label: 'Contacts', color: 'green', value: currentData?.contacts || 0, lastWeek: lastWeekData?.contacts || 0, nav: buildNavUrl('/contacts'), tooltip: weeklySummaryView === 'thisWeek' ? 'New contacts added this week' : 'Total contacts (all time)', action: () => setContactModalOpen(true) },
+          { key: 'accounts', label: 'Accounts', color: 'cyan', value: currentData?.accounts || 0, lastWeek: lastWeekData?.accounts || 0, nav: buildNavUrl('/accounts'), tooltip: weeklySummaryView === 'thisWeek' ? 'New accounts created this week' : 'Total accounts (all time)', action: () => setAccountModalOpen(true) },
+          { key: 'deals', label: 'Deals', color: 'purple', value: currentData?.deals || 0, lastWeek: lastWeekData?.deals || 0, nav: buildNavUrl('/deals'), tooltip: weeklySummaryView === 'thisWeek' ? 'New deals created this week' : 'Total deals (all time)', action: () => navigate('/deals') },
+          { key: 'meetings', label: 'Meetings', color: 'indigo', value: currentData?.meetings || 0, lastWeek: lastWeekData?.meetings || 0, nav: buildNavUrl('/meetings'), tooltip: weeklySummaryView === 'thisWeek' ? 'Meetings completed this week' : 'Meetings completed (all time)', action: () => setCreateMeetingModalOpen(true) },
+          { key: 'tasks', label: 'Tasks', color: 'emerald', value: currentData?.tasks || 0, lastWeek: lastWeekData?.tasks || 0, nav: buildNavUrl('/tasks'), tooltip: weeklySummaryView === 'thisWeek' ? 'Tasks completed this week' : 'Tasks completed (all time)', action: () => { setSelectedTask(null); setTaskModalOpen(true); } },
         ];
 
         return (
@@ -1444,7 +1620,7 @@ const UserDashboard = () => {
                     const trend = getTrendIndicator(item.value, item.lastWeek);
                     const TrendIcon = trend?.icon;
                     return (
-                      <TooltipProvider key={item.key}>
+                      <TooltipProvider key={item.key} delayDuration={100}>
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <div 
@@ -1460,8 +1636,8 @@ const UserDashboard = () => {
                               )}
                             </div>
                           </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{item.tooltip}</p>
+                          <TooltipContent side="top" sideOffset={8} className="z-[100]">
+                            <p className="whitespace-nowrap">{item.tooltip}</p>
                             {weeklySummaryView === 'thisWeek' && (
                               <p className="text-[10px] text-muted-foreground">vs last week: {trend?.diff}</p>
                             )}
@@ -1571,29 +1747,24 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="p-4 space-y-4 w-full max-w-full overflow-x-hidden" ref={containerRef}>
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
-            Welcome back{userName ? `, ${userName}` : ''}!
-          </h1>
-        </div>
+    <div className="px-2 sm:px-4 py-4 space-y-4 w-full overflow-x-hidden" ref={containerRef}>
+      {/* Customize Controls - shown at top when hideHeader is true, otherwise part of header */}
+      <div className="flex items-center justify-end flex-wrap gap-2">
         <div className="flex gap-2 flex-shrink-0 items-center">
           {isResizeMode ? (
             <>
-              <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5 hidden sm:flex items-center">
+              <div className="bg-primary/10 border border-primary/20 rounded-lg px-3 py-1.5 flex items-center">
                 <p className="text-xs text-primary font-medium flex items-center gap-1.5">
                   <Settings2 className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">Drag to move, resize edges, or press Escape to cancel</span>
-                  <span className="md:hidden">Edit mode</span>
+                  <span className="hidden sm:inline">Drag to move, resize edges, or press Escape to cancel</span>
+                  <span className="sm:hidden">Edit mode</span>
                 </p>
               </div>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" className="gap-2">
                     <Plus className="w-4 h-4" />
-                    Add Widget
+                    <span className="hidden sm:inline">Add Widget</span>
                     {pendingWidgetChanges.size > 0 && (
                       <span className="bg-primary text-primary-foreground text-xs px-1.5 py-0.5 rounded-full">
                         {pendingWidgetChanges.size}
@@ -1631,10 +1802,10 @@ const UserDashboard = () => {
                 </PopoverContent>
               </Popover>
               <Button variant="outline" onClick={handleCancelCustomize} className="gap-2">
-                <X className="w-4 h-4" /> Cancel
+                <X className="w-4 h-4" /> <span className="hidden sm:inline">Cancel</span>
               </Button>
               <Button onClick={handleSaveLayout} className="gap-2" disabled={savePreferencesMutation.isPending}>
-                <Check className="w-4 h-4" /> {savePreferencesMutation.isPending ? 'Saving...' : 'Save'}
+                <Check className="w-4 h-4" /> <span className="hidden sm:inline">{savePreferencesMutation.isPending ? 'Saving...' : 'Save'}</span>
               </Button>
             </>
           ) : (

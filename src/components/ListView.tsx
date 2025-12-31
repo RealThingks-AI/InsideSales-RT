@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RowActionsDropdown, Edit, Trash2, CheckSquare } from "./RowActionsDropdown";
 import { format } from "date-fns";
 import { InlineEditCell } from "./InlineEditCell";
-import { DealColumnCustomizer, DealColumnConfig } from "./DealColumnCustomizer";
+import { DealColumnCustomizer, DealColumnConfig, defaultDealColumns } from "./DealColumnCustomizer";
 import { BulkActionsBar } from "./BulkActionsBar";
 import { DealsAdvancedFilter, AdvancedFilterState } from "./DealsAdvancedFilter";
 import { TaskModal } from "./tasks/TaskModal";
@@ -19,6 +19,8 @@ import { DealActionsDropdown } from "./DealActionsDropdown";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useColumnPreferences } from "@/hooks/useColumnPreferences";
+import { DeleteConfirmDialog } from "./shared/DeleteConfirmDialog";
 
 interface ListViewProps {
   deals: Deal[];
@@ -53,7 +55,7 @@ export const ListView = ({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [selectedDeals, setSelectedDeals] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
+  const [itemsPerPage] = useState(25);
 
   // Sync stage filter when initialStageFilter prop changes (from URL)
   useEffect(() => {
@@ -66,6 +68,10 @@ export const ListView = ({
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskDealId, setTaskDealId] = useState<string | null>(null);
   const { createTask } = useTasks();
+
+  // Delete confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [dealToDelete, setDealToDelete] = useState<Deal | null>(null);
 
   // Column customizer state
   const [columnCustomizerOpen, setColumnCustomizerOpen] = useState(false);
@@ -580,11 +586,8 @@ export const ListView = ({
                             label: "Delete",
                             icon: <Trash2 className="w-4 h-4" />,
                             onClick: () => {
-                              onDeleteDeals([deal.id]);
-                              toast({
-                                title: "Deal deleted",
-                                description: `Successfully deleted ${deal.project_name || 'deal'}`,
-                              });
+                              setDealToDelete(deal);
+                              setDeleteDialogOpen(true);
                             },
                             destructive: true,
                             separator: true
@@ -672,6 +675,24 @@ export const ListView = ({
         onOpenChange={setColumnCustomizerOpen}
         columns={columns}
         onColumnsChange={setColumns}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={() => {
+          if (dealToDelete) {
+            onDeleteDeals([dealToDelete.id]);
+            toast({
+              title: "Deal deleted",
+              description: `Successfully deleted ${dealToDelete.project_name || 'deal'}`,
+            });
+            setDealToDelete(null);
+          }
+        }}
+        title="Delete Deal"
+        itemName={dealToDelete?.project_name || 'this deal'}
+        itemType="deal"
       />
     </div>
   );
