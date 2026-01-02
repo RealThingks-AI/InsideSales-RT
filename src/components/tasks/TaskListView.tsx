@@ -357,7 +357,7 @@ export const TaskListView = ({
                             </span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-center text-muted-foreground w-full block">-</span>
                         )}
                       </TableCell>
                       <TableCell className="px-4 py-3">
@@ -374,7 +374,7 @@ export const TaskListView = ({
                             </span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-center text-muted-foreground w-full block">-</span>
                         )}
                       </TableCell>
                       <TableCell className="px-4 py-3">
@@ -386,7 +386,7 @@ export const TaskListView = ({
                             </span>
                           </div>
                         ) : (
-                          <span className="text-muted-foreground">-</span>
+                          <span className="text-center text-muted-foreground w-full block">-</span>
                         )}
                       </TableCell>
                       <TableCell className="w-20 px-4 py-3">

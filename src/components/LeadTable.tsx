@@ -714,23 +714,47 @@ const LeadTable = forwardRef<LeadTableRef, LeadTableProps>(({
                               <HighlightedText text={lead.account_company_name} highlight={debouncedSearchTerm} />
                             </button>
                           ) : column.field === 'contact_owner' ? (
-                            <span className="truncate block">
-                              {lead.contact_owner ? displayNames[lead.contact_owner] || "Loading..." : '-'}
-                            </span>
-                          ) : column.field === 'lead_status' && lead.lead_status ? (
-                            <Badge variant="outline" className={getStatusBadgeClasses(lead.lead_status)}>
-                              {lead.lead_status}
-                            </Badge>
+                            lead.contact_owner ? (
+                              <span className="truncate block">
+                                {displayNames[lead.contact_owner] || "Loading..."}
+                              </span>
+                            ) : (
+                              <span className="text-center text-muted-foreground w-full block">-</span>
+                            )
+                          ) : column.field === 'lead_status' ? (
+                            lead.lead_status ? (
+                              <Badge variant="outline" className={getStatusBadgeClasses(lead.lead_status)}>
+                                {lead.lead_status}
+                              </Badge>
+                            ) : (
+                              <span className="text-center text-muted-foreground w-full block">-</span>
+                            )
                           ) : column.field === 'email' ? (
-                            <HighlightedText text={lead.email} highlight={debouncedSearchTerm} />
+                            lead.email ? (
+                              <HighlightedText text={lead.email} highlight={debouncedSearchTerm} />
+                            ) : (
+                              <span className="text-center text-muted-foreground w-full block">-</span>
+                            )
                           ) : column.field === 'phone_no' ? (
-                            <HighlightedText text={lead.phone_no} highlight={debouncedSearchTerm} />
+                            lead.phone_no ? (
+                              <HighlightedText text={lead.phone_no} highlight={debouncedSearchTerm} />
+                            ) : (
+                              <span className="text-center text-muted-foreground w-full block">-</span>
+                            )
                           ) : column.field === 'position' ? (
-                            <HighlightedText text={lead.position} highlight={debouncedSearchTerm} />
+                            lead.position ? (
+                              <HighlightedText text={lead.position} highlight={debouncedSearchTerm} />
+                            ) : (
+                              <span className="text-center text-muted-foreground w-full block">-</span>
+                            )
                           ) : (
-                            <span className="truncate block" title={lead[column.field as keyof Lead]?.toString() || '-'}>
-                              {lead[column.field as keyof Lead] || '-'}
-                            </span>
+                            lead[column.field as keyof Lead] ? (
+                              <span className="truncate block" title={lead[column.field as keyof Lead]?.toString()}>
+                                {lead[column.field as keyof Lead]}
+                              </span>
+                            ) : (
+                              <span className="text-center text-muted-foreground w-full block">-</span>
+                            )
                           )}
                         </TableCell>
                       ))}

@@ -666,7 +666,7 @@ const Meetings = () => {
                           <TableCell className="px-4 py-3">
                             {meeting.lead_name && <div>Lead: {meeting.lead_name}</div>}
                             {meeting.contact_name && <div>Contact: {meeting.contact_name}</div>}
-                            {!meeting.lead_name && !meeting.contact_name && <span className="text-muted-foreground">—</span>}
+                            {!meeting.lead_name && !meeting.contact_name && <span className="text-center text-muted-foreground w-full block">-</span>}
                           </TableCell>
                         )}
                         {isColumnVisible('status') && <TableCell className="px-4 py-3">{getStatusBadge(meeting)}</TableCell>}
@@ -688,18 +688,22 @@ const Meetings = () => {
                                  'Join Meeting'}
                               </a>
                             ) : (
-                              <span className="text-muted-foreground">—</span>
+                              <span className="text-center text-muted-foreground w-full block">-</span>
                             )}
                           </TableCell>
                         )}
                         {isColumnVisible('organizer') && (
                           <TableCell className="px-4 py-3">
-                            <div className="flex items-center gap-1 text-sm">
-                              <User className="h-3 w-3 text-muted-foreground" />
-                              <span className="truncate max-w-[120px]">
-                                {meeting.created_by ? organizerNames[meeting.created_by] || 'Loading...' : '-'}
-                              </span>
-                            </div>
+                            {meeting.created_by ? (
+                              <div className="flex items-center gap-1 text-sm">
+                                <User className="h-3 w-3 text-muted-foreground" />
+                                <span className="truncate max-w-[120px]">
+                                  {organizerNames[meeting.created_by] || 'Loading...'}
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-center text-muted-foreground w-full block">-</span>
+                            )}
                           </TableCell>
                         )}
                         <TableCell className="w-20 px-4 py-3">

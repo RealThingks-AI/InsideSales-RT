@@ -708,19 +708,29 @@ export const ContactTable = forwardRef<ContactTableRef, ContactTableProps>(({
                         ) : column.field === 'email' ? (
                           <HighlightedText text={contact.email} highlight={debouncedSearchTerm} />
                         ) : column.field === 'contact_owner' ? (
-                          <span className="truncate block">
-                            {contact.contact_owner ? displayNames[contact.contact_owner] || "Loading..." : '-'}
-                          </span>
+                          contact.contact_owner ? (
+                            <span className="truncate block">
+                              {displayNames[contact.contact_owner] || "Loading..."}
+                            </span>
+                          ) : (
+                            <span className="text-center text-muted-foreground w-full block">-</span>
+                          )
                         ) : column.field === 'score' ? (
-                          <span className={`font-medium ${(contact.score || 0) >= 70 ? 'text-green-600 dark:text-green-400' : (contact.score || 0) >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
-                            {contact.score ?? '-'}
-                          </span>
+                          contact.score != null ? (
+                            <span className={`font-medium ${contact.score >= 70 ? 'text-green-600 dark:text-green-400' : contact.score >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+                              {contact.score}
+                            </span>
+                          ) : (
+                            <span className="text-center text-muted-foreground w-full block">-</span>
+                          )
                         ) : column.field === 'segment' ? (
                           contact.segment ? (
                             <Badge variant="outline" className="text-xs">
                               {contact.segment}
                             </Badge>
-                          ) : '-'
+                          ) : (
+                            <span className="text-center text-muted-foreground w-full block">-</span>
+                          )
                         ) : column.field === 'tags' && contact.tags && contact.tags.length > 0 ? (
                           <TooltipProvider>
                             <Tooltip>
@@ -760,21 +770,37 @@ export const ContactTable = forwardRef<ContactTableRef, ContactTableProps>(({
                             </Tooltip>
                           </TooltipProvider>
                         ) : column.field === 'engagement_score' ? (
-                          <span className={`font-medium ${(contact.engagement_score || 0) >= 70 ? 'text-green-600 dark:text-green-400' : (contact.engagement_score || 0) >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
-                            {contact.engagement_score ?? '-'}
-                          </span>
+                          contact.engagement_score != null ? (
+                            <span className={`font-medium ${contact.engagement_score >= 70 ? 'text-green-600 dark:text-green-400' : contact.engagement_score >= 40 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`}>
+                              {contact.engagement_score}
+                            </span>
+                          ) : (
+                            <span className="text-center text-muted-foreground w-full block">-</span>
+                          )
                         ) : column.field === 'email_opens' ? (
-                          <span>{contact.email_opens ?? 0}</span>
+                          <span className="text-center w-full block">{contact.email_opens ?? 0}</span>
                         ) : column.field === 'email_clicks' ? (
-                          <span>{contact.email_clicks ?? 0}</span>
-                        ) : column.field === 'last_contacted_at' && contact.last_contacted_at ? (
-                          <span className="text-sm">{new Date(contact.last_contacted_at).toLocaleDateString()}</span>
+                          <span className="text-center w-full block">{contact.email_clicks ?? 0}</span>
+                        ) : column.field === 'last_contacted_at' ? (
+                          contact.last_contacted_at ? (
+                            <span className="text-sm">{new Date(contact.last_contacted_at).toLocaleDateString()}</span>
+                          ) : (
+                            <span className="text-center text-muted-foreground w-full block">-</span>
+                          )
                         ) : column.field === 'industry' ? (
-                          <HighlightedText text={contact.industry} highlight={debouncedSearchTerm} />
+                          contact.industry ? (
+                            <HighlightedText text={contact.industry} highlight={debouncedSearchTerm} />
+                          ) : (
+                            <span className="text-center text-muted-foreground w-full block">-</span>
+                          )
                         ) : (
-                          <span className="truncate block" title={String(getDisplayValue(contact, column.field))}>
-                            {getDisplayValue(contact, column.field)}
-                          </span>
+                          getDisplayValue(contact, column.field) && getDisplayValue(contact, column.field) !== '-' ? (
+                            <span className="truncate block" title={String(getDisplayValue(contact, column.field))}>
+                              {getDisplayValue(contact, column.field)}
+                            </span>
+                          ) : (
+                            <span className="text-center text-muted-foreground w-full block">-</span>
+                          )
                         )}
                       </TableCell>
                     ))}
