@@ -659,7 +659,7 @@ export const ListView = ({
                         <span className={`truncate block ${!deal[column.field as keyof Deal] ? 'text-center text-muted-foreground' : ''}`}>{formatDate(deal[column.field as keyof Deal] as string)}</span>
                       ) : column.field === 'lead_owner' ? (
                         <span className={`truncate block ${!deal.lead_owner ? 'text-center text-muted-foreground' : ''}`}>
-                          {deal.lead_owner ? (displayNames[deal.lead_owner] || "Loading...") : '-'}
+                          {deal.lead_owner || '-'}
                         </span>
                       ) : column.field === 'region' ? (
                         <span className={`truncate block ${!deal.region ? 'text-center text-muted-foreground' : ''}`}>{deal.region || '-'}</span>
