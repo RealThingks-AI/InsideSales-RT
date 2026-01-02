@@ -15,7 +15,7 @@ import { BulkActionsBar } from "./BulkActionsBar";
 import { DealsAdvancedFilter, AdvancedFilterState } from "./DealsAdvancedFilter";
 import { TaskModal } from "./tasks/TaskModal";
 import { useTasks } from "@/hooks/useTasks";
-import { DealActionsDropdown } from "./DealActionsDropdown";
+
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -466,8 +466,15 @@ export const ListView = ({
     setTaskModalOpen(true);
   };
 
+  // Listen for column customizer open event from header
+  useEffect(() => {
+    const handleOpenColumns = () => setColumnCustomizerOpen(true);
+    window.addEventListener('open-deal-columns', handleOpenColumns);
+    return () => window.removeEventListener('open-deal-columns', handleOpenColumns);
+  }, []);
+
   return (
-    <div className="h-full flex flex-col bg-background space-y-3">
+    <div className="flex flex-col h-full space-y-3">
       {/* Header and Actions */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
@@ -507,15 +514,6 @@ export const ListView = ({
           />
 
           <ClearFiltersButton hasActiveFilters={hasActiveFilters} onClear={clearAllFilters} />
-
-          <DealActionsDropdown
-            deals={deals}
-            onImport={onImportDeals}
-            onRefresh={() => {}}
-            selectedDeals={selectedDealObjects}
-            onColumnCustomize={() => setColumnCustomizerOpen(true)}
-            showColumns={true}
-          />
         </div>
         
         {/* Page size selector */}
