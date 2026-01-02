@@ -377,7 +377,7 @@ const DealsPage = () => {
       </div>
 
       {/* Main Content Area - Takes remaining height */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col px-4 pt-2 pb-4 overflow-hidden">
         {activeView === 'kanban' ? <KanbanBoard deals={filteredDeals} onUpdateDeal={handleUpdateDeal} onDealClick={handleDealClick} onCreateDeal={handleCreateDeal} onDeleteDeals={handleDeleteDeals} onImportDeals={handleImportDeals} onRefresh={fetchDeals} /> : <ListView deals={filteredDeals} onDealClick={handleDealClick} onUpdateDeal={handleUpdateDeal} onDeleteDeals={handleDeleteDeals} onImportDeals={handleImportDeals} initialStageFilter={stageFilterFromUrl} />}
       </div>
 
