@@ -622,12 +622,17 @@ export const ListView = ({
                       }}
                     >
                       {column.field === 'project_name' || column.field === 'deal_name' ? (
-                        <button 
-                          onClick={() => onDealClick(deal)}
-                          className="text-primary hover:underline font-medium text-left truncate"
-                        >
-                          <HighlightedText text={deal[column.field as keyof Deal]?.toString() || '-'} highlight={searchTerm} />
-                        </button>
+                        deal[column.field as keyof Deal] ? (
+                          <button 
+                            onClick={() => onDealClick(deal)}
+                            className="text-primary hover:underline font-medium text-left truncate"
+                            title={deal[column.field as keyof Deal]?.toString()}
+                          >
+                            <HighlightedText text={deal[column.field as keyof Deal]?.toString() || ''} highlight={searchTerm} />
+                          </button>
+                        ) : (
+                          <span className="text-center text-muted-foreground w-full block">-</span>
+                        )
                       ) : column.field === 'customer_name' ? (
                         <span className={`truncate block ${!deal.customer_name ? 'text-center text-muted-foreground' : ''}`}>
                           {deal.customer_name ? <HighlightedText text={deal.customer_name} highlight={searchTerm} /> : '-'}
@@ -647,7 +652,11 @@ export const ListView = ({
                           {deal.priority ? `${deal.priority} (${getPriorityLabel(deal.priority)})` : '-'}
                         </span>
                       ) : column.field === 'total_contract_value' || column.field === 'total_revenue' ? (
-                        <span className={`${deal[column.field as keyof Deal] ? 'font-medium' : 'text-center text-muted-foreground'}`}>{formatCurrency(deal[column.field as keyof Deal] as number, deal.currency_type)}</span>
+                        deal[column.field as keyof Deal] ? (
+                          <span className="font-medium">{formatCurrency(deal[column.field as keyof Deal] as number, deal.currency_type)}</span>
+                        ) : (
+                          <span className="text-center text-muted-foreground w-full block">-</span>
+                        )
                       ) : column.field === 'probability' ? (
                         <span className={`${
                           deal.probability != null ? (
