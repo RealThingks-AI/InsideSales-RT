@@ -640,31 +640,33 @@ export const ListView = ({
                           </Badge>
                         ) : <span className="text-muted-foreground">-</span>
                       ) : column.field === 'priority' ? (
-                        <span className="truncate block">
+                        <span className={`truncate block ${!deal.priority ? 'text-center text-muted-foreground' : ''}`}>
                           {deal.priority ? `${deal.priority} (${getPriorityLabel(deal.priority)})` : '-'}
                         </span>
                       ) : column.field === 'total_contract_value' || column.field === 'total_revenue' ? (
-                        <span className="font-medium">{formatCurrency(deal[column.field as keyof Deal] as number, deal.currency_type)}</span>
+                        <span className={`${deal[column.field as keyof Deal] ? 'font-medium' : 'text-center text-muted-foreground'}`}>{formatCurrency(deal[column.field as keyof Deal] as number, deal.currency_type)}</span>
                       ) : column.field === 'probability' ? (
-                        <span className={`font-medium ${
-                          (deal.probability || 0) >= 70 ? 'text-green-600 dark:text-green-400' : 
-                          (deal.probability || 0) >= 40 ? 'text-amber-600 dark:text-amber-400' : 
-                          'text-muted-foreground'
+                        <span className={`${
+                          deal.probability != null ? (
+                            (deal.probability || 0) >= 70 ? 'font-medium text-green-600 dark:text-green-400' : 
+                            (deal.probability || 0) >= 40 ? 'font-medium text-amber-600 dark:text-amber-400' : 
+                            'font-medium text-muted-foreground'
+                          ) : 'text-center text-muted-foreground'
                         }`}>
                           {deal.probability != null ? `${deal.probability}%` : '-'}
                         </span>
                       ) : column.field === 'expected_closing_date' || column.field === 'start_date' || column.field === 'end_date' || column.field === 'proposal_due_date' ? (
-                        <span className="truncate block">{formatDate(deal[column.field as keyof Deal] as string)}</span>
+                        <span className={`truncate block ${!deal[column.field as keyof Deal] ? 'text-center text-muted-foreground' : ''}`}>{formatDate(deal[column.field as keyof Deal] as string)}</span>
                       ) : column.field === 'lead_owner' ? (
-                        <span className="truncate block">
+                        <span className={`truncate block ${!deal.lead_owner ? 'text-center text-muted-foreground' : ''}`}>
                           {deal.lead_owner ? (displayNames[deal.lead_owner] || "Loading...") : '-'}
                         </span>
                       ) : column.field === 'region' ? (
-                        <span className="truncate block">{deal.region || '-'}</span>
+                        <span className={`truncate block ${!deal.region ? 'text-center text-muted-foreground' : ''}`}>{deal.region || '-'}</span>
                       ) : column.field === 'project_duration' ? (
-                        <span className="truncate block">{deal.project_duration ? `${deal.project_duration} months` : '-'}</span>
+                        <span className={`truncate block ${!deal.project_duration ? 'text-center text-muted-foreground' : ''}`}>{deal.project_duration ? `${deal.project_duration} months` : '-'}</span>
                       ) : (
-                        <span title={deal[column.field as keyof Deal]?.toString() || '-'} className="truncate block">
+                        <span title={deal[column.field as keyof Deal]?.toString() || '-'} className={`truncate block ${!deal[column.field as keyof Deal] ? 'text-center text-muted-foreground' : ''}`}>
                           {deal[column.field as keyof Deal]?.toString() || '-'}
                         </span>
                       )}
